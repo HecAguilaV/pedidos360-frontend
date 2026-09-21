@@ -1,59 +1,52 @@
-# Pedidos360Frontend
+# Pedidos360 - Frontend (Angular)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.8.
+Aplicación web frontend en **Angular 22** con **TypeScript** y autenticación **MSAL / Microsoft Entra ID** para la plataforma **Pedidos360** (Cloud Native).
 
-## Development server
+## Características
 
-To start a local development server, run:
+- **Componentes mínimos obligatorios (Sección 18):**
+  - `Login` (`/login`): Acceso con Microsoft Entra ID o perfil local para pruebas de desarrollo.
+  - `Logout` (`/logout`): Cierre seguro de sesión y revocación de tokens locales.
+  - `Home` (`/home`): Panel principal con diagrama de flujo de arquitectura y estado del usuario.
+  - `Productos` (`/productos`): Catálogo de productos interactivo, altas y bajas con control de stock y verificación de permisos (`productos.read`, `productos.write`, `ROLE_ADMIN`).
+  - `Pedidos` (`/pedidos`): Gestión de órdenes con badges de estado (`pedidos.read`, `pedidos.write`).
+- **Seguridad & MSAL:**
+  - `AuthGuard` protegiendo las rutas privadas.
+  - `authInterceptor` inyectando `Authorization: Bearer <access-token>` en cada llamada HTTP.
+  - Variables de entorno desacopladas (`src/environments/`) preparadas para Azure Entra ID y AWS API Gateway.
 
-```bash
-ng serve
+## Ejecución en Desarrollo
+
+1. Instalar dependencias:
+   ```bash
+   pnpm install
+   ```
+
+2. Levantar el servidor de desarrollo:
+   ```bash
+   pnpm start
+   ```
+
+3. Abrir en el navegador:
+   ```text
+   http://localhost:4200
+   ```
+
+## Configuración para Producción (Microsoft Entra ID + AWS API Gateway)
+
+Al momento de disponer de las credenciales de Azure y el endpoint de AWS API Gateway, editar `src/environments/environment.prod.ts`:
+
+```typescript
+export const environment = {
+  production: true,
+  apiBaseUrl: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com',
+  productosApiUrl: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/api/v1/productos',
+  pedidosApiUrl: 'https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com/api/v1/pedidos',
+  msal: {
+    clientId: '<AZURE_CLIENT_ID>',
+    tenantId: '<AZURE_TENANT_ID>',
+    redirectUri: 'https://<FRONTEND_PUBLIC_DOMAIN>',
+    apiScope: 'api://<BACKEND_APP_ID>/pedidos.read'
+  }
+};
 ```
-
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
