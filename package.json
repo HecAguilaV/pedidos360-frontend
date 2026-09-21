@@ -19,6 +19,7 @@
     "@angular/router": "^22.1.0",
     "@azure/msal-angular": "^6.2.1",
     "@azure/msal-browser": "^5.22.0",
+    "@phosphor-icons/web": "^2.1.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "^0.16.3"

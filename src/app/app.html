@@ -1,45 +1,107 @@
-<div class="app-layout">
-  <!-- Top Navigation Header -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="nav-brand">
-        <a routerLink="/home" class="brand-link">
-          <span class="brand-badge">P360</span>
-          <span class="brand-title">Pedidos360</span>
-        </a>
-        <span class="env-tag">Cloud Native</span>
+<div class="crm-shell">
+  <!-- Sidebar -->
+  <aside class="crm-sidebar" *ngIf="authService.isAuthenticated()">
+    <div class="sidebar-header">
+      <div class="brand-badge">
+        <i class="ph ph-cube-transparent"></i>
       </div>
-
-      <nav class="nav-menu" *ngIf="authService.isAuthenticated()">
-        <a routerLink="/home" routerLinkActive="active" class="nav-item">🏠 Inicio</a>
-        <a routerLink="/productos" routerLinkActive="active" class="nav-item">📦 Productos</a>
-        <a routerLink="/pedidos" routerLinkActive="active" class="nav-item">🛒 Pedidos</a>
-      </nav>
-
-      <div class="nav-auth">
-        <ng-container *ngIf="authService.isAuthenticated(); else unauthenticated">
-          <div class="user-info" *ngIf="authService.currentUser() as user">
-            <span class="role-pill" [class.admin]="authService.isAdmin()">
-              {{ authService.isAdmin() ? 'ADMIN' : 'USER' }}
-            </span>
-            <span class="user-display">{{ user.name }}</span>
-          </div>
-          <a routerLink="/logout" class="btn-logout">Salir</a>
-        </ng-container>
-        <ng-template #unauthenticated>
-          <a routerLink="/login" class="btn-login">Ingresar</a>
-        </ng-template>
+      <div class="brand-text">
+        <span class="brand-name">Pedidos360</span>
+        <span class="brand-type">CRM CLOUD NATIVE</span>
       </div>
     </div>
-  </header>
 
-  <!-- Main Content Area -->
-  <main class="main-content">
-    <router-outlet></router-outlet>
-  </main>
+    <div class="sidebar-menu">
+      <div class="menu-label">GESTIÓN PRINCIPAL</div>
+      <a routerLink="/home" routerLinkActive="active" class="menu-link">
+        <i class="ph ph-squares-four"></i>
+        <span>Dashboard</span>
+      </a>
+      <a routerLink="/productos" routerLinkActive="active" class="menu-link">
+        <i class="ph ph-package"></i>
+        <span>Productos</span>
+      </a>
+      <a routerLink="/pedidos" routerLinkActive="active" class="menu-link">
+        <i class="ph ph-shopping-bag"></i>
+        <span>Pedidos</span>
+      </a>
 
-  <!-- Footer -->
-  <footer class="app-footer">
-    <p>DSY1107 Desarrollo Cloud Native I — Angular 22 • Spring Boot 3 • PostgreSQL • Docker</p>
-  </footer>
+      <div class="menu-label">INFRAESTRUCTURA</div>
+      <div class="system-status-card">
+        <div class="status-item">
+          <span class="pulse-dot"></span>
+          <span>pedidos-service (:8081)</span>
+        </div>
+        <div class="status-item">
+          <span class="pulse-dot"></span>
+          <span>productos-service (:8082)</span>
+        </div>
+        <div class="status-item">
+          <span class="pulse-dot"></span>
+          <span>PostgreSQL (:5432)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Profile in Sidebar Footer -->
+    <div class="sidebar-footer" *ngIf="authService.currentUser() as user">
+      <div class="user-profile-box">
+        <div class="user-avatar">
+          {{ user.name.charAt(0) }}
+        </div>
+        <div class="user-meta">
+          <div class="user-name">{{ user.name }}</div>
+          <div class="user-role-pill" [class.admin]="authService.isAdmin()">
+            <i class="ph" [class.ph-crown]="authService.isAdmin()" [class.ph-user]="!authService.isAdmin()"></i>
+            {{ authService.isAdmin() ? 'ADMIN' : 'USER' }}
+          </div>
+        </div>
+        <a routerLink="/logout" class="btn-sidebar-logout" title="Cerrar sesión">
+          <i class="ph ph-sign-out"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Body Area -->
+  <div class="crm-main">
+    <!-- Topbar -->
+    <header class="crm-topbar" *ngIf="authService.isAuthenticated()">
+      <div class="topbar-left">
+        <span class="topbar-title">Panel de Control</span>
+        <span class="topbar-crumb">/ Pedidos360</span>
+      </div>
+
+      <div class="topbar-right">
+        <!-- Quick Role Switcher for Testing Section 12 -->
+        <div class="role-switcher">
+          <span class="switcher-label">Simular Rol:</span>
+          <button 
+            class="switch-btn" 
+            [class.active]="authService.isAdmin()" 
+            (click)="authService.loginAsDevUser('ADMIN')"
+            title="Activar permisos de Administrador">
+            <i class="ph ph-crown"></i> ADMIN
+          </button>
+          <button 
+            class="switch-btn" 
+            [class.active]="!authService.isAdmin()" 
+            (click)="authService.loginAsDevUser('USER')"
+            title="Activar permisos de Operador">
+            <i class="ph ph-user"></i> USER
+          </button>
+        </div>
+
+        <div class="env-pill">
+          <i class="ph ph-shield-check"></i>
+          <span>OAuth 2.0 / JWT Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <div class="crm-content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
 </div>
