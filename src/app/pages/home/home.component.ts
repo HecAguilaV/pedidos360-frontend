@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ProductosService } from '../../services/productos.service';
 import { PedidosService } from '../../services/pedidos.service';
+import { CartService } from '../../services/cart.service';
 import { Producto } from '../../models/producto.model';
 import { Pedido } from '../../models/pedido.model';
 
@@ -12,473 +13,708 @@ import { Pedido } from '../../models/pedido.model';
   standalone: true,
   imports: [CommonModule, RouterLink],
   template: `
-    <div class="dashboard-container">
+    <div class="dashboard-page">
       <!-- Welcome Header -->
-      <div class="dash-header">
-        <div>
-          <h2>Dashboard CRM</h2>
-          <p class="dash-subtitle">Visión ejecutiva de operaciones, inventario y arquitectura de servicios</p>
-        </div>
-        <div class="dash-actions">
-          <a routerLink="/pedidos" class="btn btn-primary">
-            <i class="ph ph-plus-circle"></i> Nuevo Pedido
-          </a>
-        </div>
-      </div>
-
-      <!-- Metrics KPI Cards -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-icon icon-blue">
-            <i class="ph ph-shopping-cart-simple"></i>
-          </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Total Pedidos</span>
-            <span class="kpi-value">{{ pedidos.length }}</span>
-            <span class="kpi-sub positive"><i class="ph ph-trend-up"></i> Activos en sistema</span>
+      <section class="dash-hero">
+        <div class="hero-top">
+          <span class="platform-badge">
+            <i class="ph ph-cube-transparent"></i>
+            <span>PLATAFORMA CLOUD NATIVE · EVENT-DRIVEN ENTERPRISE</span>
+          </span>
+          <div class="cloud-pill">
+            <span class="dot-live"></span>
+            <span>Multi-Cloud: Azure Entra ID + AWS EC2 & RDS</span>
           </div>
         </div>
 
+        <div class="hero-content">
+          <div>
+            <h1>Centro de Control & Arquitectura Pedidos360</h1>
+            <p>
+              Supervisión en tiempo real de operaciones de e-commerce, stock en PostgreSQL y core coreografiado con RabbitMQ.
+            </p>
+          </div>
+          <div class="hero-cta-group">
+            <a routerLink="/productos" class="btn-hero-primary">
+              <i class="ph ph-storefront"></i> Explorar Catálogo
+            </a>
+            <a routerLink="/tracking" class="btn-hero-secondary">
+              <i class="ph ph-truck"></i> Rastreo en Vivo
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPI Grid -->
+      <section class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-icon icon-emerald">
+          <div class="kpi-icon-box blue">
+            <i class="ph ph-receipt"></i>
+          </div>
+          <div class="kpi-text">
+            <span class="kpi-title">Órdenes Totales</span>
+            <strong class="kpi-number">{{ pedidos.length }}</strong>
+            <span class="kpi-tag positive"><i class="ph ph-trend-up"></i> PostgreSQL Cloud</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon-box emerald">
             <i class="ph ph-currency-dollar"></i>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Volumen Facturado</span>
-            <span class="kpi-value">\${{ totalFacturado | number:'1.2-2' }}</span>
-            <span class="kpi-sub positive"><i class="ph ph-arrow-up-right"></i> PostgreSQL Cloud</span>
+          <div class="kpi-text">
+            <span class="kpi-title">Volumen Transaccionado</span>
+            <strong class="kpi-number">\${{ totalFacturado | number:'1.2-2' }}</strong>
+            <span class="kpi-tag positive"><i class="ph ph-check-circle"></i> Asíncrono RabbitMQ</span>
           </div>
         </div>
 
         <div class="kpi-card">
-          <div class="kpi-icon icon-indigo">
-            <i class="ph ph-package"></i>
+          <div class="kpi-icon-box purple">
+            <i class="ph ph-hard-drives"></i>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Productos en Catálogo</span>
-            <span class="kpi-value">{{ productos.length }}</span>
-            <span class="kpi-sub neutral"><i class="ph ph-stack"></i> {{ totalStock }} unidades en stock</span>
+          <div class="kpi-text">
+            <span class="kpi-title">Inventario Activo</span>
+            <strong class="kpi-number">{{ totalStock }} <small>unid.</small></strong>
+            <span class="kpi-tag neutral"><i class="ph ph-stack"></i> {{ productos.length }} modelos enterprise</span>
           </div>
         </div>
 
         <div class="kpi-card">
-          <div class="kpi-icon icon-amber">
+          <div class="kpi-icon-box amber">
             <i class="ph ph-shield-check"></i>
           </div>
-          <div class="kpi-content">
-            <span class="kpi-label">Sesión Activa</span>
-            <span class="kpi-value badge-role">{{ authService.isAdmin() ? 'ADMIN' : 'OPERADOR' }}</span>
-            <span class="kpi-sub neutral"><i class="ph ph-key"></i> {{ authService.currentUser()?.scopes?.length || 4 }} scopes asignados</span>
+          <div class="kpi-text">
+            <span class="kpi-title">Identidad & Rol</span>
+            <strong class="kpi-number role-badge">{{ authService.isAdmin() ? 'ADMIN' : 'USER' }}</strong>
+            <span class="kpi-tag neutral"><i class="ph ph-key"></i> Azure Entra ID Claims</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Quick Tables Row -->
-      <div class="dash-two-cols">
-        <!-- Recent Orders -->
-        <div class="panel-card">
+      <!-- Arquitectura de Microservicios & Pipeline -->
+      <section class="arch-showcase-card">
+        <div class="arch-card-header">
+          <div class="arch-header-title">
+            <i class="ph ph-git-network"></i>
+            <div>
+              <h3>Arquitectura Event-Driven Coreografiada (RabbitMQ)</h3>
+              <p>Topología desacoplada de 5 microservicios Spring Boot interactuando mediante mensajería AMQP</p>
+            </div>
+          </div>
+          <span class="eda-badge">EDA v2.0.0</span>
+        </div>
+
+        <div class="pipeline-flow-container">
+          <div class="flow-step">
+            <div class="step-card">
+              <i class="ph ph-browser"></i>
+              <strong>Angular 22 SPA</strong>
+              <small>:4200 Storefront</small>
+            </div>
+          </div>
+
+          <div class="flow-arrow"><i class="ph ph-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-card">
+              <i class="ph ph-shield-check"></i>
+              <strong>Azure Entra ID</strong>
+              <small>OAuth2 / JWT PKCE</small>
+            </div>
+          </div>
+
+          <div class="flow-arrow"><i class="ph ph-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-card">
+              <i class="ph ph-cloud"></i>
+              <strong>AWS API Gateway</strong>
+              <small>HTTP API / JWT Auth</small>
+            </div>
+          </div>
+
+          <div class="flow-arrow"><i class="ph ph-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-card active-broker">
+              <i class="ph ph-lightning"></i>
+              <strong>pedidos-service</strong>
+              <small>:8081 Publisher</small>
+            </div>
+          </div>
+
+          <div class="flow-arrow highlight"><i class="ph ph-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-card broker-card">
+              <i class="ph ph-rabbitmq-logo"></i>
+              <strong>RabbitMQ 3</strong>
+              <small>orders.exchange</small>
+            </div>
+          </div>
+
+          <div class="flow-arrow highlight"><i class="ph ph-arrow-right"></i></div>
+
+          <div class="flow-step">
+            <div class="step-card">
+              <i class="ph ph-paper-plane-tilt"></i>
+              <strong>3x Consumers</strong>
+              <small>Stock, Envios, Email</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dos Columnas: Actividad Reciente y Catálogo Rápido -->
+      <section class="dash-columns">
+        <!-- Últimas Órdenes -->
+        <div class="dash-panel">
           <div class="panel-header">
             <div class="panel-title">
               <i class="ph ph-clock-counter-clockwise"></i>
-              <h3>Últimos Pedidos</h3>
+              <h3>Últimas Órdenes Emitidas</h3>
             </div>
-            <a routerLink="/pedidos" class="panel-link">Ver todos →</a>
+            <a routerLink="/pedidos" class="panel-link">Ver todas →</a>
           </div>
+
           <div class="panel-body">
-            <div *ngIf="pedidos.length === 0" class="empty-hint">
-              <i class="ph ph-receipt"></i> No hay pedidos registrados aún.
+            <div *ngIf="pedidos.length === 0" class="panel-empty">
+              <i class="ph ph-receipt"></i>
+              <p>No hay órdenes registradas aún en el sistema.</p>
             </div>
-            <div class="recent-list" *ngIf="pedidos.length > 0">
-              <div class="recent-item" *ngFor="let p of pedidos.slice(0, 4)">
-                <div class="item-left">
-                  <span class="item-badge">#{{ p.id }}</span>
+
+            <div class="items-list" *ngIf="pedidos.length > 0">
+              <div class="list-row" *ngFor="let ped of pedidos.slice(0, 4)">
+                <div class="row-left">
+                  <span class="row-badge">#{{ ped.id }}</span>
                   <div>
-                    <strong>{{ p.cliente }}</strong>
-                    <small>{{ p.fecha | date:'dd MMM yyyy, HH:mm' }}</small>
+                    <strong>{{ ped.cliente }}</strong>
+                    <small>{{ ped.fecha | date:'dd MMM yyyy · HH:mm' }}</small>
                   </div>
                 </div>
-                <div class="item-right">
-                  <span class="status-chip" [ngClass]="p.estado.toLowerCase()">
-                    {{ p.estado }}
-                  </span>
-                  <span class="item-total">\${{ p.total | number:'1.2-2' }}</span>
+                <div class="row-right">
+                  <span class="status-chip" [ngClass]="ped.estado.toLowerCase()">{{ ped.estado }}</span>
+                  <span class="row-total">\${{ ped.total | number:'1.2-2' }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Inventory Preview -->
-        <div class="panel-card">
+        <!-- Equipos Destacados -->
+        <div class="dash-panel">
           <div class="panel-header">
             <div class="panel-title">
-              <i class="ph ph-warehouse"></i>
-              <h3>Inventario de Productos</h3>
+              <i class="ph ph-hard-drive"></i>
+              <h3>Equipos en Bodega Central</h3>
             </div>
-            <a routerLink="/productos" class="panel-link">Gestionar →</a>
+            <a routerLink="/productos" class="panel-link">Ir a tienda →</a>
           </div>
+
           <div class="panel-body">
-            <div *ngIf="productos.length === 0" class="empty-hint">
-              <i class="ph ph-package"></i> No hay productos registrados aún.
+            <div *ngIf="productos.length === 0" class="panel-empty">
+              <i class="ph ph-package"></i>
+              <p>No hay productos en catálogo.</p>
             </div>
-            <div class="recent-list" *ngIf="productos.length > 0">
-              <div class="recent-item" *ngFor="let prod of productos.slice(0, 4)">
-                <div class="item-left">
-                  <div class="prod-icon"><i class="ph ph-cube"></i></div>
+
+            <div class="items-list" *ngIf="productos.length > 0">
+              <div class="list-row" *ngFor="let prod of productos.slice(0, 4)">
+                <div class="row-left">
+                  <div class="prod-thumb"><i class="ph ph-cpu"></i></div>
                   <div>
                     <strong>{{ prod.nombre }}</strong>
-                    <small>{{ prod.descripcion }}</small>
+                    <small>{{ prod.codigo || 'SKU-P360' }}</small>
                   </div>
                 </div>
-                <div class="item-right">
-                  <span class="stock-pill" [class.low]="prod.stock < 15">{{ prod.stock }} un.</span>
-                  <span class="item-total">\${{ prod.precio | number:'1.2-2' }}</span>
+                <div class="row-right">
+                  <span class="stock-chip" [class.low]="prod.stock < 10">{{ prod.stock }} unid.</span>
+                  <span class="row-total">\${{ prod.precio | number:'1.2-2' }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Cloud Architecture Overview -->
-      <div class="arch-card">
-        <div class="arch-header">
-          <i class="ph ph-git-network"></i>
-          <div>
-            <h3>Arquitectura Cloud Native en Operación</h3>
-            <p>Trazabilidad del flujo de datos y autenticación según la especificación</p>
-          </div>
-        </div>
-        <div class="arch-pipeline">
-          <div class="pipe-node">
-            <div class="node-icon"><i class="ph ph-browser"></i></div>
-            <strong>Angular 22 SPA</strong>
-            <small>MSAL + Interceptor</small>
-          </div>
-          <div class="pipe-arrow"><i class="ph ph-caret-right"></i></div>
-          <div class="pipe-node">
-            <div class="node-icon"><i class="ph ph-identification-card"></i></div>
-            <strong>Entra ID (IDaaS)</strong>
-            <small>OAuth2 / JWT PKCE</small>
-          </div>
-          <div class="pipe-arrow"><i class="ph ph-caret-right"></i></div>
-          <div class="pipe-node">
-            <div class="node-icon"><i class="ph ph-cloud"></i></div>
-            <strong>AWS API Gateway</strong>
-            <small>HTTP API Authorizer</small>
-          </div>
-          <div class="pipe-arrow"><i class="ph ph-caret-right"></i></div>
-          <div class="pipe-node">
-            <div class="node-icon"><i class="ph ph-cpu"></i></div>
-            <strong>Docker en EC2</strong>
-            <small>Spring Boot Microservices</small>
-          </div>
-          <div class="pipe-arrow"><i class="ph ph-caret-right"></i></div>
-          <div class="pipe-node">
-            <div class="node-icon"><i class="ph ph-database"></i></div>
-            <strong>Amazon RDS</strong>
-            <small>PostgreSQL Engine</small>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
   `,
   styles: [`
-    .dashboard-container {
+    .dashboard-page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px 64px 24px;
       display: flex;
       flex-direction: column;
-      gap: 28px;
+      gap: 24px;
     }
-    .dash-header {
+
+    /* Hero */
+    .dash-hero {
+      background: var(--surface-white);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .hero-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
     }
-    .dash-header h2 {
-      font-size: 1.6rem;
+
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
       font-weight: 800;
-      color: #0f172a;
-      letter-spacing: -0.5px;
-      margin-bottom: 4px;
+      color: var(--corp-600);
+      letter-spacing: 0.6px;
     }
-    .dash-subtitle {
-      color: #64748b;
+
+    .platform-badge i {
+      color: var(--brand-blue);
+      font-size: 1.1rem;
+    }
+
+    .cloud-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--corp-600);
+      background: var(--corp-50);
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--corp-200);
+    }
+
+    .dot-live {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--commerce-emerald);
+      box-shadow: 0 0 6px var(--commerce-emerald);
+    }
+
+    .hero-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+    }
+
+    .hero-content h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--corp-900);
+      letter-spacing: -0.6px;
+      margin-bottom: 6px;
+    }
+
+    .hero-content p {
       font-size: 0.95rem;
+      color: var(--corp-500);
+      max-width: 680px;
+      line-height: 1.5;
     }
-    .btn-primary {
+
+    .hero-cta-group {
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .btn-hero-primary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      background: var(--corp-900);
+      color: var(--surface-white);
       padding: 10px 18px;
-      background: #2563eb;
-      color: white;
-      font-weight: 600;
-      border-radius: 8px;
-      text-decoration: none;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
       transition: all 0.2s;
     }
-    .btn-primary:hover {
-      background: #1d4ed8;
+
+    .btn-hero-primary:hover {
+      background: var(--corp-800);
       transform: translateY(-1px);
     }
+
+    .btn-hero-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--corp-100);
+      color: var(--corp-700);
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      transition: all 0.2s;
+    }
+
+    .btn-hero-secondary:hover {
+      background: var(--corp-200);
+      color: var(--corp-900);
+    }
+
+    /* KPI Grid */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
     }
+
     .kpi-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 20px;
+      background: var(--surface-white);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-lg);
+      padding: 22px;
       display: flex;
       align-items: flex-start;
       gap: 16px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: var(--shadow-subtle);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     .kpi-card:hover {
       transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-hover);
     }
-    .kpi-icon {
+
+    .kpi-icon-box {
       width: 48px;
       height: 48px;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 24px;
+      flex-shrink: 0;
     }
-    .icon-blue { background: #eff6ff; color: #2563eb; }
-    .icon-emerald { background: #ecfdf5; color: #059669; }
-    .icon-indigo { background: #eef2ff; color: #4f46e5; }
-    .icon-amber { background: #fffbeb; color: #d97706; }
-    .kpi-content {
+
+    .kpi-icon-box.blue { background: var(--brand-blue-subtle); color: var(--brand-blue); }
+    .kpi-icon-box.emerald { background: var(--commerce-emerald-subtle); color: var(--commerce-emerald); }
+    .kpi-icon-box.purple { background: #ede9fe; color: #6d28d9; }
+    .kpi-icon-box.amber { background: var(--status-warning-subtle); color: var(--status-warning); }
+
+    .kpi-text {
       display: flex;
       flex-direction: column;
       gap: 2px;
     }
-    .kpi-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #64748b;
+
+    .kpi-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--corp-500);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    .kpi-value {
+
+    .kpi-number {
       font-size: 1.55rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--corp-900);
+      letter-spacing: -0.3px;
     }
-    .badge-role {
-      font-size: 1rem;
-      background: #f1f5f9;
-      padding: 4px 10px;
-      border-radius: 6px;
-      width: fit-content;
-      color: #2563eb;
+
+    .role-badge {
+      font-size: 1.15rem;
+      color: var(--brand-blue);
     }
-    .kpi-sub {
-      font-size: 0.75rem;
+
+    .kpi-tag {
+      font-size: 0.72rem;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 4px;
       margin-top: 4px;
     }
-    .kpi-sub.positive { color: #059669; }
-    .kpi-sub.neutral { color: #64748b; }
-    .dash-two-cols {
+
+    .kpi-tag.positive { color: var(--commerce-emerald); }
+    .kpi-tag.neutral { color: var(--corp-500); }
+
+    /* Architecture Showcase */
+    .arch-showcase-card {
+      background: var(--surface-white);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .arch-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .arch-header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .arch-header-title i {
+      font-size: 26px;
+      color: var(--brand-blue);
+    }
+
+    .arch-header-title h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--corp-900);
+      margin: 0;
+    }
+
+    .arch-header-title p {
+      font-size: 0.85rem;
+      color: var(--corp-500);
+      margin-top: 2px;
+    }
+
+    .eda-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: var(--brand-blue-subtle);
+      color: var(--brand-blue);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid rgba(29, 78, 216, 0.2);
+    }
+
+    .pipeline-flow-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--corp-50);
+      padding: 24px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--corp-200);
+      overflow-x: auto;
+      gap: 12px;
+    }
+
+    .flow-step {
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .step-card {
+      background: var(--surface-white);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-md);
+      padding: 16px 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      transition: transform 0.15s;
+    }
+
+    .step-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .step-card i {
+      font-size: 24px;
+      color: var(--brand-blue);
+      margin-bottom: 2px;
+    }
+
+    .step-card strong {
+      font-size: 0.82rem;
+      color: var(--corp-900);
+    }
+
+    .step-card small {
+      font-size: 0.7rem;
+      color: var(--corp-500);
+      font-family: var(--font-mono);
+    }
+
+    .step-card.active-broker {
+      border-color: rgba(29, 78, 216, 0.3);
+      background: #f8faff;
+    }
+
+    .step-card.broker-card {
+      border-color: #f97316;
+      background: #fff7ed;
+    }
+
+    .step-card.broker-card i {
+      color: #ea580c;
+    }
+
+    .flow-arrow {
+      color: var(--corp-300);
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .flow-arrow.highlight {
+      color: #ea580c;
+    }
+
+    /* Columns */
+    .dash-columns {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       gap: 24px;
     }
-    .panel-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
+
+    .dash-panel {
+      background: var(--surface-white);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-lg);
       padding: 24px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-subtle);
     }
+
     .panel-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 18px;
     }
+
     .panel-title {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 1.1rem;
-      color: #0f172a;
+      font-size: 1.05rem;
+      color: var(--corp-900);
     }
+
     .panel-title i {
-      font-size: 1.3rem;
-      color: #2563eb;
+      font-size: 1.25rem;
+      color: var(--brand-blue);
     }
+
     .panel-link {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #2563eb;
-      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--brand-blue);
     }
-    .panel-link:hover { text-decoration: underline; }
-    .recent-list {
+
+    .panel-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--corp-400);
+    }
+
+    .panel-empty i {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    .items-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
-    .recent-item {
+
+    .list-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: #f8fafc;
-      border: 1px solid #f1f5f9;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: var(--corp-50);
+      border: 1px solid var(--corp-100);
     }
-    .item-left {
+
+    .row-left {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .item-badge {
-      font-size: 0.75rem;
+
+    .row-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
       font-weight: 700;
-      padding: 2px 8px;
-      background: #e2e8f0;
-      color: #334155;
-      border-radius: 6px;
+      padding: 2px 6px;
+      background: var(--corp-200);
+      color: var(--corp-800);
+      border-radius: var(--radius-sm);
     }
-    .prod-icon {
+
+    .prod-thumb {
       width: 32px;
       height: 32px;
-      background: #eff6ff;
-      color: #2563eb;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
+      background: var(--brand-blue-subtle);
+      color: var(--brand-blue);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
+      font-size: 18px;
     }
-    .item-left strong {
+
+    .row-left strong {
       display: block;
-      font-size: 0.9rem;
-      color: #0f172a;
+      font-size: 0.88rem;
+      color: var(--corp-900);
     }
-    .item-left small {
-      color: #64748b;
+
+    .row-left small {
       font-size: 0.75rem;
+      color: var(--corp-500);
     }
-    .item-right {
+
+    .row-right {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-    .item-total {
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: #0f172a;
+
+    .row-total {
+      font-weight: 800;
+      font-size: 0.92rem;
+      color: var(--corp-900);
+      font-feature-settings: 'tnum';
     }
+
     .status-chip {
-      font-size: 0.7rem;
-      font-weight: 700;
+      font-size: 0.68rem;
+      font-weight: 800;
       padding: 2px 8px;
-      border-radius: 12px;
+      border-radius: var(--radius-full);
       text-transform: uppercase;
     }
-    .status-chip.pendiente { background: #fef9c3; color: #854d0e; }
-    .status-chip.confirmado { background: #e0f2fe; color: #0369a1; }
+
+    .status-chip.pendiente { background: var(--status-warning-subtle); color: var(--status-warning); }
+    .status-chip.confirmado { background: var(--brand-blue-subtle); color: var(--brand-blue); }
     .status-chip.enviado { background: #ede9fe; color: #6d28d9; }
-    .status-chip.entregado { background: #dcfce7; color: #15803d; }
-    .stock-pill {
-      font-size: 0.75rem;
-      font-weight: 600;
+    .status-chip.entregado { background: var(--commerce-emerald-subtle); color: var(--commerce-emerald); }
+
+    .stock-chip {
+      font-size: 0.72rem;
+      font-weight: 700;
       padding: 2px 8px;
-      border-radius: 6px;
-      background: #e2e8f0;
-      color: #334155;
+      border-radius: var(--radius-full);
+      background: var(--corp-200);
+      color: var(--corp-700);
     }
-    .stock-pill.low { background: #fee2e2; color: #dc2626; }
-    .empty-hint {
-      text-align: center;
-      color: #94a3b8;
-      padding: 24px;
-      font-size: 0.9rem;
-    }
-    .arch-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-    }
-    .arch-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .arch-header i {
-      font-size: 1.8rem;
-      color: #2563eb;
-    }
-    .arch-header h3 {
-      font-size: 1.1rem;
-      color: #0f172a;
-      margin: 0;
-    }
-    .arch-header p {
-      color: #64748b;
-      font-size: 0.85rem;
-      margin: 0;
-    }
-    .arch-pipeline {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      background: #f8fafc;
-      padding: 20px;
-      border-radius: 10px;
-      border: 1px solid #e2e8f0;
-    }
-    .pipe-node {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 4px;
-      min-width: 110px;
-    }
-    .node-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      color: #2563eb;
-      box-shadow: var(--shadow-sm);
-    }
-    .pipe-node strong {
-      font-size: 0.82rem;
-      color: #0f172a;
-    }
-    .pipe-node small {
-      font-size: 0.7rem;
-      color: #64748b;
-    }
-    .pipe-arrow {
-      color: #94a3b8;
-      font-size: 1.2rem;
+
+    .stock-chip.low {
+      background: var(--status-danger-subtle);
+      color: var(--status-danger);
     }
   `]
 })
@@ -489,7 +725,8 @@ export class HomeComponent implements OnInit {
   constructor(
     public authService: AuthService,
     private productosService: ProductosService,
-    private pedidosService: PedidosService
+    private pedidosService: PedidosService,
+    public cartService: CartService
   ) {}
 
   ngOnInit(): void {

@@ -1,0 +1,143 @@
+<div class="tracking-view">
+  <!-- Encabezado de Seguimiento -->
+  <div class="tracking-header">
+    <div class="header-content">
+      <div class="header-badge">
+        <i class="ph ph-truck"></i> Logística & Despachos en Tiempo Real
+      </div>
+      <h2>Rastreo de Despachos</h2>
+      <p>Monitoreá el estado de tu pedido procesado de forma asíncrona mediante <strong>RabbitMQ</strong> y <strong>envios-service</strong>.</p>
+    </div>
+
+    <!-- Buscador de Guía -->
+    <div class="search-box-card">
+      <div class="input-wrapper">
+        <i class="ph ph-magnifying-glass search-icon"></i>
+        <input 
+          type="text" 
+          [(ngModel)]="codigoBusqueda" 
+          (keyup.enter)="buscarGuia()"
+          placeholder="Ingresá tu código de seguimiento (ej: TRACK-2026-00101-789)..." 
+        />
+        <button class="btn-search" (click)="buscarGuia()">
+          <span *ngIf="!cargando()">Rastrear</span>
+          <span *ngIf="cargando()">Buscando...</span>
+        </button>
+      </div>
+      <div *ngIf="noEncontrado()" class="search-error">
+        <i class="ph ph-warning-circle"></i> No se encontró ningún despacho con la guía indicada. Probá seleccionando una de la lista.
+      </div>
+    </div>
+  </div>
+
+  <div class="tracking-grid">
+    <!-- Panel Principal del Envío Seleccionado -->
+    <div class="tracking-main-panel" *ngIf="envioEncontrado() as envio">
+      <!-- Tarjeta de Estado y Timeline -->
+      <div class="status-card">
+        <div class="status-card-header">
+          <div>
+            <span class="tracking-label">NÚMERO DE GUÍA</span>
+            <h3 class="tracking-code">{{ envio.numeroGuia }}</h3>
+          </div>
+          <div class="status-badge" [class]="envio.estado.toLowerCase()">
+            <span class="pulse-indicator"></span>
+            {{ envio.estado.replace('_', ' ') }}
+          </div>
+        </div>
+
+        <!-- Timeline Visual de 4 Pasos -->
+        <div class="timeline-stepper">
+          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 1" [class.active]="getStepIndex(envio.estado) === 1">
+            <div class="step-icon">
+              <i class="ph ph-receipt"></i>
+            </div>
+            <div class="step-info">
+              <span class="step-title">Pedido Confirmado</span>
+              <span class="step-sub">Orden #{{ envio.orderId }}</span>
+            </div>
+          </div>
+
+          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 2"></div>
+
+          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 2" [class.active]="getStepIndex(envio.estado) === 2">
+            <div class="step-icon">
+              <i class="ph ph-package"></i>
+            </div>
+            <div class="step-info">
+              <span class="step-title">Preparando Paquete</span>
+              <span class="step-sub">Bodega Central</span>
+            </div>
+          </div>
+
+          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 3"></div>
+
+          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 3" [class.active]="getStepIndex(envio.estado) === 3">
+            <div class="step-icon">
+              <i class="ph ph-truck"></i>
+            </div>
+            <div class="step-info">
+              <span class="step-title">En Tránsito</span>
+              <span class="step-sub">{{ envio.empresaTransporte }}</span>
+            </div>
+          </div>
+
+          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 4"></div>
+
+          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 4" [class.active]="getStepIndex(envio.estado) === 4">
+            <div class="step-icon">
+              <i class="ph ph-house-line"></i>
+            </div>
+            <div class="step-info">
+              <span class="step-title">Entregado</span>
+              <span class="step-sub">Destino Final</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalles del Despacho -->
+        <div class="shipping-specs-grid">
+          <div class="spec-box">
+            <span class="spec-label"><i class="ph ph-user"></i> Destinatario</span>
+            <span class="spec-value">{{ envio.destinatario }}</span>
+          </div>
+          <div class="spec-box">
+            <span class="spec-label"><i class="ph ph-map-pin"></i> Dirección de Entrega</span>
+            <span class="spec-value">{{ envio.direccionEntrega || 'Dirección registrada en Santiago' }}</span>
+          </div>
+          <div class="spec-box">
+            <span class="spec-label"><i class="ph ph-calendar"></i> Fecha Despacho</span>
+            <span class="spec-value">{{ envio.fechaDespacho | date:'mediumDate' }}</span>
+          </div>
+          <div class="spec-box">
+            <span class="spec-label"><i class="ph ph-clock"></i> Entrega Estimada</span>
+            <span class="spec-value highlight">{{ envio.fechaEstimadaEntrega | date:'mediumDate' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista Lateral de Despachos Recientes -->
+    <div class="tracking-sidebar">
+      <div class="sidebar-card">
+        <h4 class="sidebar-title"><i class="ph ph-clock-counter-clockwise"></i> Despachos Recientes</h4>
+        <div class="shipment-list">
+          <div 
+            *ngFor="let item of listaEnvios()" 
+            class="shipment-item"
+            [class.selected]="envioEncontrado()?.id === item.id"
+            (click)="seleccionarGuia(item)">
+            <div class="item-top">
+              <span class="item-code">{{ item.numeroGuia }}</span>
+              <span class="item-badge" [class]="item.estado.toLowerCase()">{{ item.estado.replace('_', ' ') }}</span>
+            </div>
+            <div class="item-bottom">
+              <span>Orden #{{ item.orderId }}</span>
+              <span>{{ item.destinatario }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

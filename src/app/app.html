@@ -1,107 +1,210 @@
-<div class="crm-shell">
-  <!-- Sidebar -->
-  <aside class="crm-sidebar" *ngIf="authService.isAuthenticated()">
-    <div class="sidebar-header">
-      <div class="brand-badge">
-        <i class="ph ph-cube-transparent"></i>
-      </div>
-      <div class="brand-text">
-        <span class="brand-name">Pedidos360</span>
-        <span class="brand-type">CRM CLOUD NATIVE</span>
-      </div>
-    </div>
-
-    <div class="sidebar-menu">
-      <div class="menu-label">GESTIÓN PRINCIPAL</div>
-      <a routerLink="/home" routerLinkActive="active" class="menu-link">
-        <i class="ph ph-squares-four"></i>
-        <span>Dashboard</span>
-      </a>
-      <a routerLink="/productos" routerLinkActive="active" class="menu-link">
-        <i class="ph ph-package"></i>
-        <span>Productos</span>
-      </a>
-      <a routerLink="/pedidos" routerLinkActive="active" class="menu-link">
-        <i class="ph ph-shopping-bag"></i>
-        <span>Pedidos</span>
+<div class="store-layout">
+  <!-- Topbar Corporativo de E-Commerce -->
+  <header class="store-navbar" *ngIf="authService.isAuthenticated()">
+    <div class="navbar-container">
+      <!-- Marca / Logo -->
+      <a routerLink="/productos" class="navbar-brand">
+        <div class="brand-icon">
+          <i class="ph ph-cube-transparent"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Pedidos360</span>
+          <span class="brand-subtitle">ENTERPRISE HARDWARE STORE</span>
+        </div>
       </a>
 
-      <div class="menu-label">INFRAESTRUCTURA</div>
-      <div class="system-status-card">
-        <div class="status-item">
-          <span class="pulse-dot"></span>
-          <span>pedidos-service (:8081)</span>
-        </div>
-        <div class="status-item">
-          <span class="pulse-dot"></span>
-          <span>productos-service (:8082)</span>
-        </div>
-        <div class="status-item">
-          <span class="pulse-dot"></span>
-          <span>PostgreSQL (:5432)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- User Profile in Sidebar Footer -->
-    <div class="sidebar-footer" *ngIf="authService.currentUser() as user">
-      <div class="user-profile-box">
-        <div class="user-avatar">
-          {{ user.name.charAt(0) }}
-        </div>
-        <div class="user-meta">
-          <div class="user-name">{{ user.name }}</div>
-          <div class="user-role-pill" [class.admin]="authService.isAdmin()">
-            <i class="ph" [class.ph-crown]="authService.isAdmin()" [class.ph-user]="!authService.isAdmin()"></i>
-            {{ authService.isAdmin() ? 'ADMIN' : 'USER' }}
-          </div>
-        </div>
-        <a routerLink="/logout" class="btn-sidebar-logout" title="Cerrar sesión">
-          <i class="ph ph-sign-out"></i>
+      <!-- Navegación Principal -->
+      <nav class="navbar-links">
+        <a routerLink="/productos" routerLinkActive="active" class="nav-item">
+          <i class="ph ph-storefront"></i>
+          <span>Catálogo</span>
         </a>
-      </div>
-    </div>
-  </aside>
+        <a routerLink="/pedidos" routerLinkActive="active" class="nav-item">
+          <i class="ph ph-receipt"></i>
+          <span>Mis Pedidos</span>
+        </a>
+        <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
+          <i class="ph ph-truck"></i>
+          <span>Rastreo Despachos</span>
+        </a>
+        <a routerLink="/home" routerLinkActive="active" class="nav-item">
+          <i class="ph ph-chart-line-up"></i>
+          <span>Dashboard</span>
+        </a>
+      </nav>
 
-  <!-- Main Body Area -->
-  <div class="crm-main">
-    <!-- Topbar -->
-    <header class="crm-topbar" *ngIf="authService.isAuthenticated()">
-      <div class="topbar-left">
-        <span class="topbar-title">Panel de Control</span>
-        <span class="topbar-crumb">/ Pedidos360</span>
-      </div>
-
-      <div class="topbar-right">
-        <!-- Quick Role Switcher for Testing Section 12 -->
-        <div class="role-switcher">
-          <span class="switcher-label">Simular Rol:</span>
+      <!-- Controles de Usuario y Carrito -->
+      <div class="navbar-actions">
+        <!-- Selector de Rol (Azure Claims) -->
+        <div class="role-selector-pill">
           <button 
-            class="switch-btn" 
+            class="role-btn" 
             [class.active]="authService.isAdmin()" 
             (click)="authService.loginAsDevUser('ADMIN')"
-            title="Activar permisos de Administrador">
-            <i class="ph ph-crown"></i> ADMIN
+            title="Simular Rol Administrador">
+            <i class="ph ph-shield-check"></i> ADMIN
           </button>
           <button 
-            class="switch-btn" 
+            class="role-btn" 
             [class.active]="!authService.isAdmin()" 
             (click)="authService.loginAsDevUser('USER')"
-            title="Activar permisos de Operador">
+            title="Simular Rol Operador">
             <i class="ph ph-user"></i> USER
           </button>
         </div>
 
-        <div class="env-pill">
-          <i class="ph ph-shield-check"></i>
-          <span>OAuth 2.0 / JWT Ready</span>
+        <!-- Botón de Carrito con Badge Reactivo -->
+        <button class="cart-trigger-btn" (click)="cartService.toggleDrawer()" title="Ver carrito de compras">
+          <div class="cart-icon-wrapper">
+            <i class="ph ph-shopping-cart-simple"></i>
+            <span class="cart-badge" *ngIf="cartService.totalItems() > 0">
+              {{ cartService.totalItems() }}
+            </span>
+          </div>
+          <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
+            ${{ cartService.totalAmount() | number:'1.2-2' }}
+          </span>
+        </button>
+
+        <!-- Perfil de Usuario -->
+        <div class="user-menu" *ngIf="authService.currentUser() as user">
+          <div class="user-avatar" [title]="user.name">
+            {{ user.name.charAt(0) }}
+          </div>
+          <a routerLink="/logout" class="btn-logout" title="Cerrar sesión corporativa">
+            <i class="ph ph-sign-out"></i>
+          </a>
         </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Page Content Container -->
-    <div class="crm-content">
-      <router-outlet></router-outlet>
+  <!-- Contenedor Principal de Vistas -->
+  <main class="store-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Drawer Lateral del Carrito (Slide-over) -->
+  <div class="cart-drawer-overlay" *ngIf="cartService.isDrawerOpen()" (click)="cartService.closeDrawer()"></div>
+  <aside class="cart-drawer" [class.open]="cartService.isDrawerOpen()">
+    <div class="drawer-header">
+      <div class="drawer-title-box">
+        <i class="ph ph-shopping-bag"></i>
+        <h3>Tu Carrito</h3>
+        <span class="drawer-count-pill">{{ cartService.totalItems() }}</span>
+      </div>
+      <button class="btn-close-drawer" (click)="cartService.closeDrawer()">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <!-- Lista de Artículos -->
+    <div class="drawer-body">
+      <div *ngIf="cartService.items().length === 0" class="drawer-empty-state">
+        <div class="empty-icon-circle">
+          <i class="ph ph-shopping-cart"></i>
+        </div>
+        <h4>Tu carrito está vacío</h4>
+        <p>Explorá nuestro catálogo de tecnología y agregá productos para iniciar una orden.</p>
+        <button class="btn-start-shopping" (click)="cartService.closeDrawer()">
+          Ver Catálogo
+        </button>
+      </div>
+
+      <div *ngIf="cartService.items().length > 0" class="cart-items-list">
+        <div *ngFor="let item of cartService.items()" class="cart-card-item">
+          <div class="item-thumb">
+            <i class="ph ph-package"></i>
+          </div>
+          <div class="item-details">
+            <div class="item-header-row">
+              <span class="item-title">{{ item.productName }}</span>
+              <button class="btn-remove-item" (click)="cartService.eliminarItem(item.id!)" title="Eliminar">
+                <i class="ph ph-trash"></i>
+              </button>
+            </div>
+            <span class="item-code">{{ item.productCode }}</span>
+            <div class="item-controls-row">
+              <div class="quantity-stepper">
+                <button (click)="cartService.actualizarCantidad(item.id!, item.quantity - 1)">-</button>
+                <span>{{ item.quantity }}</span>
+                <button (click)="cartService.actualizarCantidad(item.id!, item.quantity + 1)">+</button>
+              </div>
+              <span class="item-price">${{ (item.subtotal || item.unitPrice * item.quantity) | number:'1.2-2' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer y Checkout -->
+    <div class="drawer-footer" *ngIf="cartService.items().length > 0">
+      <div class="order-summary-box">
+        <div class="summary-line">
+          <span>Subtotal</span>
+          <span>${{ (cartService.totalAmount() * 0.81) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-line">
+          <span>IVA (19%)</span>
+          <span>${{ (cartService.totalAmount() * 0.19) | number:'1.2-2' }}</span>
+        </div>
+        <div class="summary-line total">
+          <span>Total a Pagar</span>
+          <span class="total-number">${{ cartService.totalAmount() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="event-architecture-notice">
+        <i class="ph ph-lightning"></i>
+        <span>Al confirmar, <strong>pedidos-service</strong> emite el evento <code>orden.creada</code> a <strong>RabbitMQ</strong>.</span>
+      </div>
+
+      <button 
+        class="btn-checkout" 
+        [disabled]="checkoutLoading()" 
+        (click)="realizarCheckout()">
+        <span *ngIf="!checkoutLoading()"><i class="ph ph-check-circle"></i> Confirmar Pedido y Pagar</span>
+        <span *ngIf="checkoutLoading()"><i class="ph ph-spinner ph-spin"></i> Procesando Compra...</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Modal de Éxito de Compra (Checkout Completed) -->
+  <div class="modal-backdrop" *ngIf="checkoutSuccessModal()">
+    <div class="success-modal-card">
+      <div class="success-icon-badge">
+        <i class="ph ph-check"></i>
+      </div>
+      <h3>¡Orden Confirmada con Éxito!</h3>
+      <p class="success-subtitle">Tu compra ha sido procesada de forma asíncrona mediante eventos de RabbitMQ.</p>
+
+      <div class="order-receipt-summary" *ngIf="lastOrderResult() as res">
+        <div class="receipt-row">
+          <span>Número de Orden:</span>
+          <strong>#{{ res.orderId }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Total Pagado:</span>
+          <strong class="receipt-amount">${{ res.total | number:'1.2-2' }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Código de Despacho:</span>
+          <span class="tracking-pill">{{ res.trackingNumber }}</span>
+        </div>
+        <div class="receipt-row">
+          <span>Comprobante / Boleta:</span>
+          <span class="email-notice"><i class="ph ph-envelope-simple-check"></i> Enviada a {{ res.email }}</span>
+        </div>
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn-modal-tracking" (click)="irATracking(lastOrderResult()?.trackingNumber || '')">
+          <i class="ph ph-truck"></i> Ver Rastreo en Vivo
+        </button>
+        <button class="btn-modal-close" (click)="cerrarModalExito()">
+          Cerrar
+        </button>
+      </div>
     </div>
   </div>
 </div>
