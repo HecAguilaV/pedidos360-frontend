@@ -7,9 +7,9 @@ export const environment = {
 
   // Microsoft Entra ID / MSAL Configuration (Section 24)
   msal: {
-    clientId: '', // e.g. '00000000-0000-0000-0000-000000000000'
-    tenantId: '', // e.g. 'common' or tenant UUID
+    clientId: '4c9cb95d-2a2e-4f3c-88eb-1fbe551829b5',
+    tenantId: 'e5372bf0-c5e3-4286-887c-79069f209c1f',
     redirectUri: 'http://localhost:4200',
-    apiScope: 'api://pedidos360/pedidos.read',
+    apiScope: 'api://4c9cb95d-2a2e-4f3c-88eb-1fbe551829b5/pedidos360.access',
   }
 };

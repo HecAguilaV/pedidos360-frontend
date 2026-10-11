@@ -53,9 +53,14 @@ import { AuthService } from '../../services/auth.service';
 
         <!-- Microsoft Entra ID Option -->
         <div class="azure-box" *ngIf="authService.isMsalConfigured">
-          <button class="btn-azure" (click)="authService.login()">
-            <i class="ph ph-shield-check"></i> Iniciar sesión con Microsoft Entra ID
+          <button class="btn-azure" [disabled]="isLoadingAzure" (click)="loginWithAzure()">
+            <i class="ph ph-shield-check" *ngIf="!isLoadingAzure"></i>
+            <i class="ph ph-spinner ph-spin" *ngIf="isLoadingAzure"></i>
+            {{ isLoadingAzure ? 'Conectando con Microsoft...' : 'Iniciar sesión con Microsoft Entra ID' }}
           </button>
+          <div class="azure-error" *ngIf="azureErrorMessage">
+            {{ azureErrorMessage }}
+          </div>
         </div>
 
         <!-- Architecture Specs -->
@@ -218,6 +223,17 @@ import { AuthService } from '../../services/auth.service';
       transition: all 0.2s;
     }
     .btn-azure:hover { background: #106ebe; }
+    .btn-azure:disabled { opacity: 0.7; cursor: not-allowed; }
+    .azure-error {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      color: #b91c1c;
+      font-size: 0.78rem;
+      line-height: 1.3;
+    }
     .specs-summary {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -245,7 +261,23 @@ import { AuthService } from '../../services/auth.service';
   `]
 })
 export class LoginComponent {
+  isLoadingAzure = false;
+  azureErrorMessage = '';
+
   constructor(public authService: AuthService, private router: Router) {}
+
+  async loginWithAzure(): Promise<void> {
+    try {
+      this.isLoadingAzure = true;
+      this.azureErrorMessage = '';
+      await this.authService.login();
+      this.router.navigate(['/productos']);
+    } catch (err: any) {
+      this.azureErrorMessage = err?.message || 'Error al autenticar con Microsoft Entra ID';
+    } finally {
+      this.isLoadingAzure = false;
+    }
+  }
 
   loginAs(role: 'USER' | 'ADMIN'): void {
     this.authService.loginAsDevUser(role);
