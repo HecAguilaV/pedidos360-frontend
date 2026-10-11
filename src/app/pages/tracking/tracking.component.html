@@ -114,6 +114,35 @@
             <span class="spec-value highlight">{{ envio.fechaEstimadaEntrega | date:'mediumDate' }}</span>
           </div>
         </div>
+
+        <!-- Panel Operativo Exclusivo para Despachadores y Administradores -->
+        <div class="despachador-control-card" *ngIf="authService.isDespachador() || authService.isAdmin()">
+          <div class="despachador-header">
+            <span class="role-pill-despachador"><i class="ph ph-shield-check"></i> OPERACIONES LOGÍSTICAS (ROL: DESPACHADOR)</span>
+            <h4>Actualizar Estado del Envío</h4>
+            <p>Acción autorizada por token de Azure Entra ID para cambiar el estado operativo:</p>
+          </div>
+          <div class="action-buttons-group">
+            <button 
+              class="btn-status-action btn-prep" 
+              [disabled]="envio.estado === 'PREPARANDO_PAQUETE' || cargando()"
+              (click)="actualizarEstado(envio.id!, 'PREPARANDO_PAQUETE')">
+              <i class="ph ph-package"></i> Preparando Paquete
+            </button>
+            <button 
+              class="btn-status-action btn-transit" 
+              [disabled]="envio.estado === 'EN_TRANSITO' || cargando()"
+              (click)="actualizarEstado(envio.id!, 'EN_TRANSITO')">
+              <i class="ph ph-truck"></i> Marcar En Tránsito
+            </button>
+            <button 
+              class="btn-status-action btn-delivered" 
+              [disabled]="envio.estado === 'ENTREGADO' || cargando()"
+              (click)="actualizarEstado(envio.id!, 'ENTREGADO')">
+              <i class="ph ph-house-line"></i> Marcar Entregado
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

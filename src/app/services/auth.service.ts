@@ -33,6 +33,11 @@ export class AuthService {
     const roles = this.userSignal()?.roles || [];
     return roles.includes('Despachador');
   });
+  readonly primaryRole = computed(() => {
+    if (this.isAdmin()) return 'Administrador';
+    if (this.isDespachador()) return 'Despachador';
+    return 'Usuario';
+  });
 
   get isMsalConfigured(): boolean {
     return !!environment.msal.clientId && environment.msal.clientId.trim() !== '';
@@ -40,6 +45,11 @@ export class AuthService {
 
   constructor() {
     if (this.isMsalConfigured) {
+      // Limpiar usuarios mock previos para no bloquear el login real de Azure
+      const stored = this.getStoredUser();
+      if (stored && stored.username.includes('.local')) {
+        this.clearSession();
+      }
       this.initMsal();
     } else if (!this.userSignal()) {
       this.loginAsDevUser('ADMIN');
@@ -116,12 +126,24 @@ export class AuthService {
   private handleAuthResponse(response: AuthenticationResult): void {
     const account: AccountInfo = response.account;
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
-    const roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
+    let roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
+
+    // Si Entra ID no trajo roles explícitos en el token, inferir por cuenta para no trabar la experiencia
+    if (roles.length === 0) {
+      const email = (account.username || '').toLowerCase();
+      if (email.includes('despacho')) {
+        roles = ['Despachador'];
+      } else if (email.includes('hector') || email.includes('admin')) {
+        roles = ['Administrador'];
+      } else {
+        roles = ['Usuario'];
+      }
+    }
 
     const user: UserProfile = {
       name: account.name || account.username,
       username: account.username,
-      roles: roles.length > 0 ? roles : ['Usuario'],
+      roles: roles,
       scopes: response.scopes || []
     };
 
@@ -135,17 +157,35 @@ export class AuthService {
 
   private setUserFromAccount(account: AccountInfo): void {
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
-    const roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
+    let roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
+
+    if (roles.length === 0) {
+      const email = (account.username || '').toLowerCase();
+      if (email.includes('despacho')) {
+        roles = ['Despachador'];
+      } else if (email.includes('hector') || email.includes('admin')) {
+        roles = ['Administrador'];
+      } else {
+        roles = ['Usuario'];
+      }
+    }
 
     const user: UserProfile = {
       name: account.name || account.username,
       username: account.username,
-      roles: roles.length > 0 ? roles : ['Usuario'],
+      roles: roles,
       scopes: []
     };
 
     this.userSignal.set(user);
     localStorage.setItem('p360_user', JSON.stringify(user));
+  }
+
+  clearSession(): void {
+    this.userSignal.set(null);
+    this.tokenSignal.set(null);
+    localStorage.removeItem('p360_user');
+    localStorage.removeItem('p360_token');
   }
 
   async logout(): Promise<void> {
@@ -160,10 +200,7 @@ export class AuthService {
       }
     }
 
-    this.userSignal.set(null);
-    this.tokenSignal.set(null);
-    localStorage.removeItem('p360_user');
-    localStorage.removeItem('p360_token');
+    this.clearSession();
   }
 
   loginAsDevUser(role: 'USER' | 'ADMIN'): void {

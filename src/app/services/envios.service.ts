@@ -41,4 +41,8 @@ export class EnviosService {
       catchError(() => of(null))
     );
   }
+
+  actualizarEstado(id: number, estado: string): Observable<Envio> {
+    return this.http.put<Envio>(`${this.apiUrl}/${id}/estado`, { estado });
+  }
 }

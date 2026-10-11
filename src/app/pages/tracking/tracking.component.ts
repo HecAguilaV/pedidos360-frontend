@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { EnviosService } from '../../services/envios.service';
 import { Envio } from '../../models/envio.model';
 
+import { AuthService } from '../../services/auth.service';
+
 @Component({
   selector: 'app-tracking',
   standalone: true,
@@ -18,7 +20,25 @@ export class TrackingComponent implements OnInit {
   cargando = signal<boolean>(false);
   noEncontrado = signal<boolean>(false);
 
-  constructor(private enviosService: EnviosService) {}
+  constructor(
+    private enviosService: EnviosService,
+    public authService: AuthService
+  ) {}
+
+  actualizarEstado(id: number, nuevoEstado: string): void {
+    this.cargando.set(true);
+    this.enviosService.actualizarEstado(id, nuevoEstado).subscribe({
+      next: (actualizado) => {
+        this.cargando.set(false);
+        this.envioEncontrado.set(actualizado);
+        this.cargarEnviosRecientes();
+      },
+      error: (err) => {
+        this.cargando.set(false);
+        console.error('Error al actualizar estado del despacho:', err);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.cargarEnviosRecientes();

@@ -137,36 +137,65 @@
   flex-shrink: 0;
 }
 
-/* Azure Role Selector Pill */
-.role-selector-pill {
-  display: flex;
-  align-items: center;
-  background: var(--corp-100);
-  padding: 3px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--corp-200);
-}
-
-.role-btn {
+/* Real Authenticated Role Badge */
+.user-role-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--corp-500);
+  gap: 6px;
+  padding: 5px 14px;
   border-radius: var(--radius-full);
-  transition: all 0.15s ease;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.role-btn i {
-  font-size: 0.85rem;
+.user-role-badge i {
+  font-size: 0.95rem;
 }
 
-.role-btn.active {
-  background: var(--surface-white);
+.user-role-badge.administrador, .user-role-badge.admin {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.user-role-badge.despachador {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.user-role-badge.usuario, .user-role-badge.user {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  line-height: 1.2;
+}
+
+.user-display-name {
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--corp-900);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 0.70rem;
+  color: var(--corp-500);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Cart Trigger Button */
