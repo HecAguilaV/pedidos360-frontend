@@ -4,7 +4,7 @@
   <header class="store-navbar">
     <div class="navbar-container">
       <!-- Marca / Logo -->
-      <a routerLink="/productos" class="navbar-brand">
+      <a [routerLink]="authService.isDespachador() ? '/tracking' : '/productos'" class="navbar-brand">
         <div class="brand-icon">
           <i class="ph ph-cube-transparent"></i>
         </div>

@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ProductosService } from '../../services/productos.service';
 import { AuthService } from '../../services/auth.service';
 import { CartService } from '../../services/cart.service';
@@ -1300,10 +1301,15 @@ export class ProductosComponent implements OnInit {
   constructor(
     private productosService: ProductosService,
     public authService: AuthService,
-    private cartService: CartService
+    private cartService: CartService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
+    if (this.authService.isDespachador()) {
+      this.router.navigate(['/tracking']);
+      return;
+    }
     this.loadProductos();
   }
 
