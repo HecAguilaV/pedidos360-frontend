@@ -29,6 +29,13 @@ export class App {
     const items = this.cartService.items();
     if (items.length === 0) return;
 
+    // Si el usuario es un invitado, redirigir a inicio de sesión
+    if (!this.authService.isAuthenticated()) {
+      this.cartService.closeDrawer();
+      this.router.navigate(['/login'], { queryParams: { returnUrl: 'checkout' } });
+      return;
+    }
+
     this.checkoutLoading.set(true);
 
     const currentUser = this.authService.currentUser();

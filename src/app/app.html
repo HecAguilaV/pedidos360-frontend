@@ -1,6 +1,7 @@
 <div class="store-layout">
   <!-- Topbar Corporativo de E-Commerce -->
-  <header class="store-navbar" *ngIf="authService.isAuthenticated()">
+  <!-- Topbar Corporativo de E-Commerce (Visible para invitados y usuarios autenticados) -->
+  <header class="store-navbar">
     <div class="navbar-container">
       <!-- Marca / Logo -->
       <a routerLink="/productos" class="navbar-brand">
@@ -9,70 +10,109 @@
         </div>
         <div class="brand-text">
           <span class="brand-title">Pedidos360</span>
-          <span class="brand-subtitle">ENTERPRISE HARDWARE STORE</span>
+          <span class="brand-subtitle">ENTERPRISE CLOUD STORE</span>
         </div>
       </a>
 
-      <!-- Navegación Principal -->
+      <!-- Navegación Principal Adaptada por Rol -->
       <nav class="navbar-links">
-        <a routerLink="/productos" routerLinkActive="active" class="nav-item">
-          <i class="ph ph-storefront"></i>
-          <span>Catálogo</span>
-        </a>
-        <a routerLink="/pedidos" routerLinkActive="active" class="nav-item">
-          <i class="ph ph-receipt"></i>
-          <span>Mis Pedidos</span>
-        </a>
-        <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
-          <i class="ph ph-truck"></i>
-          <span>Rastreo Despachos</span>
-        </a>
-        <a routerLink="/home" routerLinkActive="active" class="nav-item">
-          <i class="ph ph-chart-line-up"></i>
-          <span>Dashboard</span>
-        </a>
+        <!-- Para Despachador: Enfocado exclusivamente en su operación logística -->
+        <ng-container *ngIf="authService.isDespachador()">
+          <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-truck"></i>
+            <span>Rastreo & Despachos</span>
+          </a>
+        </ng-container>
+
+        <!-- Para Invitados, Clientes y Administradores -->
+        <ng-container *ngIf="!authService.isDespachador()">
+          <a routerLink="/productos" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-storefront"></i>
+            <span>Catálogo</span>
+          </a>
+          <a *ngIf="authService.isAuthenticated()" routerLink="/pedidos" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-receipt"></i>
+            <span>Mis Pedidos</span>
+          </a>
+          <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-truck"></i>
+            <span>Rastreo Despachos</span>
+          </a>
+          <a *ngIf="authService.isAdmin()" routerLink="/home" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-chart-line-up"></i>
+            <span>Métricas Microservicios</span>
+          </a>
+        </ng-container>
       </nav>
 
       <!-- Controles de Usuario y Carrito -->
       <div class="navbar-actions">
-        <!-- Badge con el Rol Real Autenticado de Azure -->
-        <div class="user-role-badge" [class]="authService.primaryRole().toLowerCase()">
-          <i class="ph ph-crown" *ngIf="authService.isAdmin()"></i>
-          <i class="ph ph-truck" *ngIf="authService.isDespachador()"></i>
-          <i class="ph ph-user" *ngIf="!authService.isAdmin() && !authService.isDespachador()"></i>
-          <span>{{ authService.primaryRole() }}</span>
-        </div>
+        <!-- VISTA AUTENTICADA: Rol, Carrito y Perfil -->
+        <ng-container *ngIf="authService.isAuthenticated()">
+          <!-- Badge con el Rol Real Autenticado -->
+          <div class="user-role-badge" [class]="authService.primaryRole().toLowerCase()">
+            <i class="ph ph-crown" *ngIf="authService.isAdmin()"></i>
+            <i class="ph ph-truck" *ngIf="authService.isDespachador()"></i>
+            <i class="ph ph-user" *ngIf="!authService.isAdmin() && !authService.isDespachador()"></i>
+            <span>{{ authService.primaryRole() }}</span>
+          </div>
 
-        <!-- Botón de Carrito con Badge Reactivo -->
-        <button 
-          *ngIf="!authService.isDespachador()"
-          class="cart-trigger-btn" 
-          (click)="cartService.toggleDrawer()" 
-          title="Ver carrito de compras">
-          <div class="cart-icon-wrapper">
-            <i class="ph ph-shopping-cart-simple"></i>
-            <span class="cart-badge" *ngIf="cartService.totalItems() > 0">
-              {{ cartService.totalItems() }}
+          <!-- Botón de Carrito (Solo si no es Despachador) -->
+          <button 
+            *ngIf="!authService.isDespachador()"
+            class="cart-trigger-btn" 
+            (click)="cartService.toggleDrawer()" 
+            title="Ver carrito de compras">
+            <div class="cart-icon-wrapper">
+              <i class="ph ph-shopping-cart-simple"></i>
+              <span class="cart-badge" *ngIf="cartService.totalItems() > 0">
+                {{ cartService.totalItems() }}
+              </span>
+            </div>
+            <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
+              ${{ cartService.totalAmount() | number:'1.2-2' }}
             </span>
-          </div>
-          <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
-            ${{ cartService.totalAmount() | number:'1.2-2' }}
-          </span>
-        </button>
-
-        <!-- Perfil de Usuario Real -->
-        <div class="user-menu" *ngIf="authService.currentUser() as user">
-          <div class="user-info-text">
-            <span class="user-display-name">{{ user.name }}</span>
-            <span class="user-email">{{ user.username }}</span>
-          </div>
-          <div class="user-avatar" [title]="user.name">
-            {{ (user.name || user.username).charAt(0).toUpperCase() }}
-          </div>
-          <button class="btn-logout" (click)="authService.logout()" title="Cerrar sesión corporativa">
-            <i class="ph ph-sign-out"></i>
           </button>
-        </div>
+
+          <!-- Perfil de Usuario Real -->
+          <div class="user-menu" *ngIf="authService.currentUser() as user">
+            <div class="user-info-text">
+              <span class="user-display-name">{{ user.name }}</span>
+              <span class="user-email">{{ user.username }}</span>
+            </div>
+            <div class="user-avatar" [title]="user.name">
+              {{ (user.name || user.username).charAt(0).toUpperCase() }}
+            </div>
+            <button class="btn-logout" (click)="authService.logout()" title="Cerrar sesión corporativa">
+              <i class="ph ph-sign-out"></i>
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- VISTA INVITADO / PÚBLICA (No Autenticado) -->
+        <ng-container *ngIf="!authService.isAuthenticated()">
+          <!-- Carrito para Invitados -->
+          <button 
+            class="cart-trigger-btn" 
+            (click)="cartService.toggleDrawer()" 
+            title="Ver carrito de compras">
+            <div class="cart-icon-wrapper">
+              <i class="ph ph-shopping-cart-simple"></i>
+              <span class="cart-badge" *ngIf="cartService.totalItems() > 0">
+                {{ cartService.totalItems() }}
+              </span>
+            </div>
+            <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
+              ${{ cartService.totalAmount() | number:'1.2-2' }}
+            </span>
+          </button>
+
+          <!-- Botón Iniciar Sesión -->
+          <a routerLink="/login" class="btn-nav-login">
+            <i class="ph ph-user-circle"></i>
+            <span>Iniciar Sesión</span>
+          </a>
+        </ng-container>
       </div>
     </div>
   </header>

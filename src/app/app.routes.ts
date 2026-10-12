@@ -12,8 +12,8 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'logout', component: LogoutComponent },
   { path: 'home', component: HomeComponent, canActivate: [authGuard] },
-  { path: 'productos', component: ProductosComponent, canActivate: [authGuard] },
+  { path: 'productos', component: ProductosComponent },
   { path: 'pedidos', component: PedidosComponent, canActivate: [authGuard] },
-  { path: 'tracking', component: TrackingComponent, canActivate: [authGuard] },
+  { path: 'tracking', component: TrackingComponent },
   { path: '**', redirectTo: 'productos' }
 ];

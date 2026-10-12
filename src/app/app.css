@@ -219,6 +219,33 @@
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
 }
 
+/* Guest Login Button */
+.btn-nav-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, var(--brand-blue) 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-nav-login i {
+  font-size: 1.15rem;
+}
+
+.btn-nav-login:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  color: #ffffff;
+}
+
 .cart-icon-wrapper {
   position: relative;
   display: flex;
