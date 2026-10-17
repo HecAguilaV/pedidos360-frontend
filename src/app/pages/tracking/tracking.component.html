@@ -17,7 +17,7 @@
           type="text" 
           [(ngModel)]="codigoBusqueda" 
           (keyup.enter)="buscarGuia()"
-          placeholder="Ingresá tu código de seguimiento (ej: TRACK-2026-00101-789)..." 
+          placeholder="Ingresa tu código de seguimiento (ej: TRACK-2026-00101-789)..." 
         />
         <button class="btn-search" (click)="buscarGuia()">
           <span *ngIf="!cargando()">Rastrear</span>
@@ -25,7 +25,7 @@
         </button>
       </div>
       <div *ngIf="noEncontrado()" class="search-error">
-        <i class="ph ph-warning-circle"></i> No se encontró ningún despacho con la guía indicada. Probá seleccionando una de la lista.
+        <i class="ph ph-warning-circle"></i> No se encontró ningún despacho con la guía indicada. Prueba seleccionando una de la lista.
       </div>
     </div>
   </div>

@@ -1078,7 +1078,7 @@ export class PedidosComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error al crear pedido:', err);
-        this.message = 'Error al registrar pedido. Verificá los permisos del token.';
+        this.message = 'Error al registrar pedido. Verifica los permisos del token.';
         this.isError = true;
         this.loading = false;
       }

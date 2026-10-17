@@ -277,7 +277,7 @@ import { Producto } from '../../models/producto.model';
           <i class="ph ph-magnifying-glass"></i>
         </div>
         <h3>No se encontraron equipos con los criterios seleccionados</h3>
-        <p>Probá modificando los términos de búsqueda o cambiando la categoría seleccionada.</p>
+        <p>Prueba modificando los términos de búsqueda o cambiando la categoría seleccionada.</p>
         <button class="btn-reset-filters" (click)="resetFilters()">Ver todo el catálogo</button>
       </div>
 
@@ -1457,7 +1457,7 @@ export class ProductosComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error al crear producto:', err);
-        this.message = 'Error al publicar equipo. Verificá los permisos del token.';
+        this.message = 'Error al publicar equipo. Verifica los permisos del token.';
         this.isError = true;
         this.loading = false;
       }

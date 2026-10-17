@@ -51,7 +51,7 @@ import { CartService } from '../../services/cart.service';
                 <i class="ph ph-shield-check"></i> SINGLE SIGN-ON EMPRESARIAL
               </span>
               <h3>Acceso Institucional</h3>
-              <p>Iniciá sesión con tu cuenta corporativa para validar tus permisos en Microsoft Entra ID.</p>
+              <p>Inicia sesión con tu cuenta corporativa para validar tus permisos en Microsoft Entra ID.</p>
             </div>
 
             <!-- Cuentas registradas en el Tenant -->
@@ -110,8 +110,8 @@ import { CartService } from '../../services/cart.service';
               <h3>{{ isRegisterMode ? 'Crear Cuenta de Cliente' : 'Bienvenido a la Tienda' }}</h3>
               <p>
                 {{ isRegisterMode 
-                  ? 'Registrate para guardar tus pedidos y gestionar direcciones.' 
-                  : 'Ingresá tus credenciales de cliente para finalizar tus compras.' }}
+                  ? 'Regístrate para guardar tus pedidos y gestionar direcciones.' 
+                  : 'Ingresa tus credenciales de cliente para finalizar tus compras.' }}
               </p>
             </div>
 
@@ -175,13 +175,13 @@ import { CartService } from '../../services/cart.service';
 
               <!-- Switch entre Login y Registro -->
               <div class="toggle-register-box">
-                <span *ngIf="!isRegisterMode">¿No tenés cuenta aún?</span>
-                <span *ngIf="isRegisterMode">¿Ya tenés una cuenta?</span>
+                <span *ngIf="!isRegisterMode">¿No tienes cuenta aún?</span>
+                <span *ngIf="isRegisterMode">¿Ya tienes una cuenta?</span>
                 <button 
                   type="button" 
                   class="btn-text-toggle" 
                   (click)="isRegisterMode = !isRegisterMode">
-                  {{ isRegisterMode ? 'Iniciá Sesión aquí' : 'Creá tu cuenta aquí' }}
+                  {{ isRegisterMode ? 'Inicia sesión aquí' : 'Crea tu cuenta aquí' }}
                 </button>
               </div>
             </form>
@@ -637,7 +637,7 @@ export class LoginComponent implements OnInit {
 
   handleCognitoSubmit(): void {
     if (!this.clientEmail || !this.clientPassword) {
-      this.cognitoErrorMessage = 'Por favor completá tu correo y contraseña.';
+      this.cognitoErrorMessage = 'Por favor completa tu correo y contraseña.';
       return;
     }
 
