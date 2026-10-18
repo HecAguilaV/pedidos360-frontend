@@ -2,12 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, of, retry, timer } from 'rxjs';
 import { Envio } from '../models/envio.model';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EnviosService {
-  private readonly apiUrl = 'http://localhost:8085/api/v1/envios';
+  private readonly apiUrl = environment.enviosApiUrl;
+
 
   constructor(private http: HttpClient) {}
 

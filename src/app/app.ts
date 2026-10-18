@@ -73,7 +73,7 @@ export class App {
             email: clienteEmail
           });
 
-          this.cartService.vaciarCarrito();
+          this.cartService.sincronizarPostOrden();
           this.cartService.closeDrawer();
           this.checkoutLoading.set(false);
           this.checkoutSuccessModal.set(true);

@@ -2,12 +2,13 @@ import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CartItem, CartSummary } from '../models/cart.model';
 import { Observable, tap, catchError, of } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CartService {
-  private readonly apiUrl = 'http://localhost:8083/api/v1/carrito';
+  private readonly apiUrl = environment.carritoApiUrl;
 
   // Signals reactivos para el estado del carrito
   readonly cart = signal<CartSummary>({ items: [], totalItems: 0, totalAmount: 0 });
@@ -39,7 +40,6 @@ export class CartService {
     this.isLoading.set(true);
     this.http.get<CartSummary>(this.apiUrl).pipe(
       catchError(() => {
-        // Fallback local en caso de que carrito-service esté levantando
         const local = localStorage.getItem('pedidos360_cart_fallback');
         if (local) {
           try {
@@ -64,8 +64,7 @@ export class CartService {
         this.cargarCarrito();
         this.openDrawer();
       }),
-      catchError(err => {
-        // Fallback reactivo local
+      catchError(() => {
         this.cart.update(curr => {
           const existing = curr.items.find(i => i.productCode === productCode);
           let updatedItems: CartItem[];
@@ -138,6 +137,12 @@ export class CartService {
     ).subscribe();
   }
 
+  sincronizarPostOrden(): void {
+    localStorage.removeItem('pedidos360_cart_fallback');
+    this.cart.set({ items: [], totalItems: 0, totalAmount: 0 });
+    setTimeout(() => this.cargarCarrito(), 400);
+  }
+
   vaciarCarrito(): void {
     this.http.delete(this.apiUrl).pipe(
       tap(() => this.cargarCarrito()),
@@ -150,3 +155,4 @@ export class CartService {
     ).subscribe();
   }
 }
+
