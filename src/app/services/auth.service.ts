@@ -572,12 +572,13 @@ export class AuthService {
 
     const anyNorm = `${normalizedUsername} ${normalizedName}`.toLowerCase();
     let isDespacho = anyNorm.includes('despacho');
-    let isHectorAdmin =
+    let isLabUser =
       anyNorm.includes('hector') ||
       anyNorm.includes('aguila') ||
       anyNorm.includes('agulila') ||
       anyNorm.includes('josecamposar') ||
       anyNorm.includes('josecampos') ||
+      anyNorm.includes('@josecamposar.onmicrosoft.com') ||
       (claims && claims['oid'] === '6b28ce84-4872-44c9-ac77-de271b3dbbbe');
 
     const scanObj = (p: Record<string, any>) => {
@@ -587,15 +588,13 @@ export class AuthService {
         if (typeof v === 'string') {
           const s = v.toLowerCase();
           if (s.includes('despacho')) isDespacho = true;
-          if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos')) isHectorAdmin = true;
-          if (s.includes('@josecamposar.onmicrosoft.com')) isHectorAdmin = true;
+          if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos') || s.includes('@josecamposar.onmicrosoft.com')) isLabUser = true;
         } else if (Array.isArray(v)) {
           for (const it of v) {
             if (typeof it === 'string') {
               const s = it.toLowerCase();
               if (s.includes('despacho')) isDespacho = true;
-              if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos')) isHectorAdmin = true;
-              if (s.includes('@josecamposar.onmicrosoft.com')) isHectorAdmin = true;
+              if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos') || s.includes('@josecamposar.onmicrosoft.com')) isLabUser = true;
             }
           }
         }
@@ -606,7 +605,7 @@ export class AuthService {
     if (rawToken) scanObj(this.decodeJwtPayload(rawToken));
     if (rawIdToken && rawIdToken !== rawToken) scanObj(this.decodeJwtPayload(rawIdToken));
 
-    if (isHectorAdmin && !isDespacho) {
+    if (isLabUser && !isDespacho) {
       extracted.add('Administrador');
       extracted.add('ADMIN');
     } else if (isDespacho) {
@@ -642,7 +641,7 @@ export class AuthService {
       }
     } catch {}
     const isDespacho = anyFieldLower.includes('despacho');
-    const isHectorAdmin =
+    const isLabUser =
       anyFieldLower.includes('hector') ||
       anyFieldLower.includes('aguila') ||
       anyFieldLower.includes('josecamposar') ||
@@ -652,7 +651,10 @@ export class AuthService {
     let finalRoles: string[] = roles;
     if (isDespacho) {
       finalRoles = ['Despachador'];
-    } else if (isHectorAdmin || roles.includes('Administrador') || roles.includes('ADMIN')) {
+    } else if (isLabUser) {
+      // Force admin for lab tenant users
+      finalRoles = ['Administrador', 'ADMIN'];
+    } else if (roles.includes('Administrador') || roles.includes('ADMIN')) {
       finalRoles = Array.from(new Set([...roles, 'Administrador', 'ADMIN']));
     } else if (roles.length === 0 || (roles.length === 1 && roles[0] === 'Usuario')) {
       finalRoles = ['Administrador', 'ADMIN'];
@@ -695,7 +697,7 @@ export class AuthService {
       }
     } catch {}
     const isDespacho = anyFieldLower.includes('despacho');
-    const isHectorAdmin =
+    const isLabUser =
       anyFieldLower.includes('hector') ||
       anyFieldLower.includes('aguila') ||
       anyFieldLower.includes('josecamposar') ||
@@ -705,7 +707,9 @@ export class AuthService {
     let finalRoles: string[] = roles;
     if (isDespacho) {
       finalRoles = ['Despachador'];
-    } else if (isHectorAdmin || roles.includes('Administrador') || roles.includes('ADMIN')) {
+    } else if (isLabUser) {
+      finalRoles = ['Administrador', 'ADMIN'];
+    } else if (roles.includes('Administrador') || roles.includes('ADMIN')) {
       finalRoles = Array.from(new Set([...roles, 'Administrador', 'ADMIN']));
     } else if (roles.length === 0 || (roles.length === 1 && roles[0] === 'Usuario')) {
       finalRoles = ['Administrador', 'ADMIN'];
