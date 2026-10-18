@@ -7,6 +7,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
+  if (req.headers.has('X-Skip-Auth-Interceptor')) {
+    const cleanedHeaders = req.headers.delete('X-Skip-Auth-Interceptor');
+    return next(req.clone({ headers: cleanedHeaders }));
+  }
+
   const authService = inject(AuthService);
   const token = authService.getAccessToken();
   const user = authService.currentUser();
