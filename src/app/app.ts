@@ -47,8 +47,15 @@ export class App {
       cliente: clienteNombre,
       clienteEmail: clienteEmail,
       estado: 'PAGADA',
-      total: total
+      total: total,
+      items: items.map(item => ({
+        productCode: item.productCode,
+        productName: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice
+      }))
     };
+
 
     this.pedidosService.createPedido(nuevoPedido).subscribe({
       next: (pedidoCreado) => {
