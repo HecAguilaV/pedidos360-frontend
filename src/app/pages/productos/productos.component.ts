@@ -403,7 +403,19 @@ export class ProductosComponent implements OnInit {
   showModal = false;
   searchTerm = '';
   onlyInStock = false;
-  activeView: 'catalog' | 'crm' = 'catalog';
+  private _userSelectedView: 'catalog' | 'crm' | null = null;
+
+  get activeView(): 'catalog' | 'crm' {
+    if (this._userSelectedView) {
+      return this._userSelectedView;
+    }
+    return this.authService.isAdmin() ? 'crm' : 'catalog';
+  }
+
+  set activeView(val: 'catalog' | 'crm') {
+    this._userSelectedView = val;
+  }
+
   adminStorePreview = true;
 
   message = '';
@@ -433,9 +445,6 @@ export class ProductosComponent implements OnInit {
     if (this.authService.isDespachador()) {
       this.router.navigate(['/tracking']);
       return;
-    }
-    if (this.authService.isAdmin()) {
-      this.activeView = 'crm';
     }
     // Instant cache hydration: zero blank screen, zero loading lag
     const cached = this.productosService.cachedProductos();

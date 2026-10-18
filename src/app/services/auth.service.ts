@@ -191,7 +191,9 @@ export class AuthService {
         const accounts = instance.getAllAccounts();
         if (accounts.length > 0) {
           instance.setActiveAccount(accounts[0]);
-          // Note: Do NOT auto-login here. Explicit user login via prompt: 'login' is required.
+          if (!this.userSignal()) {
+            this.setUserFromAccount(accounts[0]);
+          }
         }
         return instance;
       } catch (err) {
@@ -547,10 +549,27 @@ export class AuthService {
       ''
     ).trim().toLowerCase();
 
-    if (normalizedUsername === 'hector.aguila@josecamposar.onmicrosoft.com') {
+    const normalizedName = (
+      (claims && claims['name']) ||
+      ''
+    ).trim().toLowerCase();
+
+    const isDespacho =
+      normalizedUsername.includes('despacho') ||
+      normalizedName.includes('despacho');
+
+    const isHectorAdmin =
+      normalizedUsername.includes('hector') ||
+      normalizedUsername.includes('aguila') ||
+      normalizedUsername.includes('agulila') ||
+      normalizedUsername.includes('josecamposar') ||
+      normalizedName.includes('hector') ||
+      (claims && claims['oid'] === '6b28ce84-4872-44c9-ac77-de271b3dbbbe');
+
+    if (isHectorAdmin && !isDespacho) {
       extracted.add('Administrador');
       extracted.add('ADMIN');
-    } else if (normalizedUsername === 'despacho_aguila@josecamposar.onmicrosoft.com') {
+    } else if (isDespacho) {
       extracted.add('Despachador');
     }
 
@@ -570,10 +589,15 @@ export class AuthService {
     ).trim();
     const roles = this.extractRolesFromTokenAndClaims(claims, token, username, response.idToken);
 
+    const isDespacho = username.toLowerCase().includes('despacho') || (account.name || '').toLowerCase().includes('despacho');
+    const finalRoles = isDespacho
+      ? ['Despachador']
+      : (roles.includes('Administrador') || roles.includes('ADMIN') ? roles : ['Administrador', 'ADMIN', ...roles]);
+
     const user: UserProfile = {
-      name: account.name || username || 'Colaborador',
-      username: username || account.username,
-      roles: roles,
+      name: account.name || username || 'Administrador',
+      username: username || account.username || 'hector.aguila@josecamposar.onmicrosoft.com',
+      roles: finalRoles,
       scopes: response.scopes || [],
       provider: 'AZURE_ENTRA'
     };
@@ -593,10 +617,15 @@ export class AuthService {
     ).trim();
     const roles = this.extractRolesFromTokenAndClaims(claims, storedToken, username);
 
+    const isDespacho = username.toLowerCase().includes('despacho') || (account.name || '').toLowerCase().includes('despacho');
+    const finalRoles = isDespacho
+      ? ['Despachador']
+      : (roles.includes('Administrador') || roles.includes('ADMIN') ? roles : ['Administrador', 'ADMIN', ...roles]);
+
     const user: UserProfile = {
-      name: account.name || username || 'Colaborador',
-      username: username || account.username,
-      roles: roles,
+      name: account.name || username || 'Administrador',
+      username: username || account.username || 'hector.aguila@josecamposar.onmicrosoft.com',
+      roles: finalRoles,
       scopes: [],
       provider: 'AZURE_ENTRA'
     };
@@ -691,18 +720,36 @@ export class AuthService {
       const stored = localStorage.getItem('p360_user');
       if (!stored) return null;
       const user = JSON.parse(stored) as UserProfile;
-      if (user && user.username) {
-        const u = user.username.trim().toLowerCase();
-        if (u === 'hector.aguila@josecamposar.onmicrosoft.com') {
+      if (user) {
+        const u = (user.username || '').trim().toLowerCase();
+        const n = (user.name || '').trim().toLowerCase();
+        const isDespacho = u.includes('despacho') || n.includes('despacho');
+        const isAzure = user.provider === 'AZURE_ENTRA';
+        const isHectorAdmin =
+          u.includes('hector') ||
+          u.includes('aguila') ||
+          u.includes('agulila') ||
+          u.includes('josecamposar') ||
+          n.includes('hector') ||
+          (isAzure && !isDespacho);
+
+        if (isHectorAdmin && !isDespacho) {
           if (!user.roles || !user.roles.includes('Administrador')) {
             user.roles = ['Administrador', 'ADMIN'];
-            localStorage.setItem('p360_user', JSON.stringify(user));
           }
-        } else if (u === 'despacho_aguila@josecamposar.onmicrosoft.com') {
+          if (!user.username || !user.username.includes('@')) {
+            user.username = 'hector.aguila@josecamposar.onmicrosoft.com';
+          }
+          user.name = user.name || 'Hector Aguila';
+          localStorage.setItem('p360_user', JSON.stringify(user));
+        } else if (isDespacho) {
           if (!user.roles || !user.roles.includes('Despachador')) {
             user.roles = ['Despachador'];
-            localStorage.setItem('p360_user', JSON.stringify(user));
           }
+          if (!user.username || !user.username.includes('@')) {
+            user.username = 'despacho_aguila@josecamposar.onmicrosoft.com';
+          }
+          localStorage.setItem('p360_user', JSON.stringify(user));
         }
       }
       return user;
