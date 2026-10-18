@@ -1,4 +1,5 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   PublicClientApplication,
   Configuration,
@@ -33,6 +34,7 @@ export class AuthService {
   private cognitoConfigSignal = signal<CognitoRuntimeConfig>(this.loadInitialCognitoConfig());
   private pca: PublicClientApplication | null = null;
   private pcaInitPromise: Promise<PublicClientApplication | null> | null = null;
+  private router = inject(Router);
 
   readonly currentUser = computed(() => this.userSignal());
   readonly isAuthenticated = computed(() => !!this.userSignal());
@@ -167,22 +169,29 @@ export class AuthService {
         await instance.initialize();
         this.pca = instance;
 
-        try {
-          const redirectResponse = await instance.handleRedirectPromise();
-          if (redirectResponse && redirectResponse.account) {
-            instance.setActiveAccount(redirectResponse.account);
-            this.handleAuthResponse(redirectResponse);
+        // Only handle redirect if URL actually contains auth response parameters (avoids no_token_request_cache_error)
+        const hasRedirectHash =
+          typeof window !== 'undefined' &&
+          (window.location.hash.includes('code=') ||
+            window.location.hash.includes('error=') ||
+            window.location.search.includes('code='));
+
+        if (hasRedirectHash) {
+          try {
+            const redirectResponse = await instance.handleRedirectPromise();
+            if (redirectResponse && redirectResponse.account) {
+              instance.setActiveAccount(redirectResponse.account);
+              this.handleAuthResponse(redirectResponse);
+            }
+          } catch (redirectErr) {
+            console.warn('Advertencia en handleRedirectPromise de MSAL:', redirectErr);
           }
-        } catch (redirectErr) {
-          console.warn('Advertencia en handleRedirectPromise de MSAL:', redirectErr);
         }
 
         const accounts = instance.getAllAccounts();
         if (accounts.length > 0) {
           instance.setActiveAccount(accounts[0]);
-          if (!this.userSignal()) {
-            this.setUserFromAccount(accounts[0]);
-          }
+          // Note: Do NOT auto-login here. Explicit user login via prompt: 'login' is required.
         }
         return instance;
       } catch (err) {
@@ -204,13 +213,6 @@ export class AuthService {
       throw new Error('No se pudo inicializar el cliente MSAL de Microsoft');
     }
 
-    // Ensure prior redirect or interaction has completed
-    try {
-      await pca.handleRedirectPromise();
-    } catch (e) {
-      console.warn('Advertencia en handleRedirectPromise de MSAL previo a login:', e);
-    }
-
     // Clear any orphaned interaction locks left by closed/crashed popups
     this.clearMsalInteractionLocks();
 
@@ -220,9 +222,10 @@ export class AuthService {
     }
 
     try {
+      // Force interactive authentication: prompt: 'login' demands password + 2FA
       const response: AuthenticationResult = await pca.loginPopup({
         scopes: requestScopes,
-        prompt: 'select_account'
+        prompt: 'login'
       });
       pca.setActiveAccount(response.account);
       this.handleAuthResponse(response);
@@ -234,7 +237,7 @@ export class AuthService {
         try {
           const retryResponse: AuthenticationResult = await pca.loginPopup({
             scopes: requestScopes,
-            prompt: 'select_account'
+            prompt: 'login'
           });
           pca.setActiveAccount(retryResponse.account);
           this.handleAuthResponse(retryResponse);
@@ -542,6 +545,16 @@ export class AuthService {
     localStorage.removeItem('p360_user');
     localStorage.removeItem('p360_token');
     this.clearMsalInteractionLocks();
+    if (this.pca) {
+      try {
+        const accounts = this.pca.getAllAccounts();
+        for (const acc of accounts) {
+          this.pca.setActiveAccount(null);
+        }
+      } catch {
+        // ignore
+      }
+    }
   }
 
   async logout(): Promise<void> {
@@ -559,6 +572,7 @@ export class AuthService {
     }
 
     this.clearSession();
+    this.router.navigate(['/login']);
   }
 
   clearMsalInteractionLocks(): void {
