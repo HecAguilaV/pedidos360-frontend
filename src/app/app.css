@@ -48,13 +48,13 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--corp-900) 0%, var(--corp-800) 100%);
-  color: #38bdf8;
+  background: var(--corp-900);
+  color: var(--surface-white);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+  font-size: 20px;
+  box-shadow: var(--shadow-subtle);
   transition: transform 0.2s ease;
 }
 

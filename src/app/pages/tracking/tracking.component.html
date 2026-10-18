@@ -1,172 +1,206 @@
-<div class="tracking-view">
-  <!-- Encabezado de Seguimiento -->
-  <div class="tracking-header">
-    <div class="header-content">
-      <div class="header-badge">
-        <i class="ph ph-truck"></i> Logística & Despachos en Tiempo Real
-      </div>
-      <h2>Rastreo de Despachos</h2>
-      <p>Monitoreá el estado de tu pedido procesado de forma asíncrona mediante <strong>RabbitMQ</strong> y <strong>envios-service</strong>.</p>
+<div class="page-shell">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <span class="page-eyebrow">
+        <i class="ph ph-truck"></i>
+        {{ isStaff ? 'Operación Logística' : 'Seguimiento de Pedidos' }}
+      </span>
+      <h1 class="page-title">{{ isStaff ? 'Consola de Despachos' : 'Sigue tu Envío' }}</h1>
+      <p class="page-subtitle">
+        {{ isStaff
+            ? 'Gestiona las guías de despacho y avanza cada envío por su ciclo: preparación, ruta y entrega.'
+            : 'Ingresa tu número de guía para conocer el estado de tu pedido y la fecha estimada de entrega.' }}
+      </p>
     </div>
-
-    <!-- Buscador de Guía -->
-    <div class="search-box-card">
-      <div class="input-wrapper">
-        <i class="ph ph-magnifying-glass search-icon"></i>
-        <input 
-          type="text" 
-          [(ngModel)]="codigoBusqueda" 
-          (keyup.enter)="buscarGuia()"
-          placeholder="Ingresa tu código de seguimiento (ej: TRACK-2026-00101)..." 
-        />
-        <button class="btn-search" (click)="buscarGuia()">
-          <span *ngIf="!cargando()">Rastrear</span>
-          <span *ngIf="cargando()">Buscando...</span>
-        </button>
-      </div>
-      <div *ngIf="noEncontrado()" class="search-error">
-        <i class="ph ph-warning-circle"></i> No se encontró ningún despacho con la guía indicada. Prueba seleccionando una de la lista.
-      </div>
+    <div class="page-actions" *ngIf="isStaff">
+      <button class="btn btn-outline" (click)="cargarEnvios()">
+        <i class="ph ph-arrows-clockwise"></i>
+        <span>Actualizar</span>
+      </button>
     </div>
   </div>
 
-  <div class="tracking-grid">
-    <!-- Panel Principal del Envío Seleccionado -->
-    <div class="tracking-main-panel" *ngIf="envioEncontrado() as envio">
-      <!-- Tarjeta de Estado y Timeline -->
-      <div class="status-card">
-        <div class="status-card-header">
-          <div>
-            <span class="tracking-label">NÚMERO DE GUÍA</span>
-            <h3 class="tracking-code">{{ envio.numeroGuia }}</h3>
-          </div>
-          <div class="status-badge" [class]="envio.estado.toLowerCase()">
-            <span class="pulse-indicator"></span>
-            {{ envio.estado.replace('_', ' ') }}
-          </div>
-        </div>
+  <!-- Search -->
+  <div class="toolbar-bar">
+    <div class="search-box" style="max-width: 560px;">
+      <i class="ph ph-magnifying-glass"></i>
+      <input
+        type="text"
+        [(ngModel)]="codigoBusqueda"
+        (keyup.enter)="buscarGuia()"
+        placeholder="Número de guía, ej. TRACK-2026-00101"
+      />
+    </div>
+    <button class="btn btn-primary" (click)="buscarGuia()" [disabled]="cargando()">
+      <i class="ph" [ngClass]="cargando() ? 'ph-spinner ph-spin' : 'ph-magnifying-glass'"></i>
+      <span>Buscar</span>
+    </button>
+  </div>
 
-        <!-- Timeline Visual de 4 Pasos -->
-        <div class="timeline-stepper">
-          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 1" [class.active]="getStepIndex(envio.estado) === 1">
-            <div class="step-icon">
-              <i class="ph ph-receipt"></i>
-            </div>
-            <div class="step-info">
-              <span class="step-title">Pedido Confirmado</span>
-              <span class="step-sub">Orden #{{ envio.orderId }}</span>
-            </div>
-          </div>
+  <div class="alert-banner error" *ngIf="noEncontrado()">
+    <span><i class="ph ph-warning-circle"></i> No encontramos un envío con esa guía. Revisa el número en tu comprobante.</span>
+  </div>
 
-          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 2"></div>
+  <div class="alert-banner error" *ngIf="errorOperacion()">
+    <span><i class="ph ph-warning-circle"></i> {{ errorOperacion() }}</span>
+    <button class="btn-danger-ghost" (click)="errorOperacion.set(null)"><i class="ph ph-x"></i></button>
+  </div>
 
-          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 2" [class.active]="getStepIndex(envio.estado) === 2">
-            <div class="step-icon">
-              <i class="ph ph-package"></i>
-            </div>
-            <div class="step-info">
-              <span class="step-title">Preparando Paquete</span>
-              <span class="step-sub">Bodega Central</span>
-            </div>
-          </div>
+  <!-- Order exists but no guide yet -->
+  <div class="crm-card pending-card" *ngIf="ordenEnPreparacion() as ordenId">
+    <div class="pending-icon"><i class="ph ph-hourglass-medium"></i></div>
+    <div>
+      <h3>Orden #{{ ordenId }} en preparación de despacho</h3>
+      <p>Tu compra fue registrada. La guía de seguimiento se asigna en cuanto bodega confirma el pago y prepara el paquete. Vuelve a consultar en unos minutos.</p>
+    </div>
+    <button class="btn btn-outline btn-sm" (click)="buscarPorOrden(ordenId)">
+      <i class="ph ph-arrows-clockwise"></i> Reintentar
+    </button>
+  </div>
 
-          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 3"></div>
+  <!-- Selected shipment detail -->
+  <div class="crm-card shipment-detail" *ngIf="envioEncontrado() as envio">
+    <div class="crm-card-header">
+      <div>
+        <span class="detail-label">Número de guía</span>
+        <div class="detail-guide">{{ envio.numeroGuia }}</div>
+      </div>
+      <span class="status-pill" [ngClass]="estadoBadge(envio.estado)">{{ estadoLabel(envio.estado) }}</span>
+    </div>
 
-          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 3" [class.active]="getStepIndex(envio.estado) === 3">
-            <div class="step-icon">
-              <i class="ph ph-truck"></i>
-            </div>
-            <div class="step-info">
-              <span class="step-title">En Tránsito</span>
-              <span class="step-sub">{{ envio.empresaTransporte }}</span>
-            </div>
-          </div>
-
-          <div class="step-line" [class.active]="getStepIndex(envio.estado) >= 4"></div>
-
-          <div class="step-item" [class.completed]="getStepIndex(envio.estado) >= 4" [class.active]="getStepIndex(envio.estado) === 4">
-            <div class="step-icon">
-              <i class="ph ph-house-line"></i>
-            </div>
-            <div class="step-info">
-              <span class="step-title">Entregado</span>
-              <span class="step-sub">Destino Final</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Detalles del Despacho -->
-        <div class="shipping-specs-grid">
-          <div class="spec-box">
-            <span class="spec-label"><i class="ph ph-user"></i> Destinatario</span>
-            <span class="spec-value">{{ envio.destinatario }}</span>
-          </div>
-          <div class="spec-box">
-            <span class="spec-label"><i class="ph ph-map-pin"></i> Dirección de Entrega</span>
-            <span class="spec-value">{{ envio.direccionEntrega || 'Dirección registrada en Santiago' }}</span>
-          </div>
-          <div class="spec-box">
-            <span class="spec-label"><i class="ph ph-calendar"></i> Fecha Despacho</span>
-            <span class="spec-value">{{ envio.fechaDespacho | date:'mediumDate' }}</span>
-          </div>
-          <div class="spec-box">
-            <span class="spec-label"><i class="ph ph-clock"></i> Entrega Estimada</span>
-            <span class="spec-value highlight">{{ envio.fechaEstimadaEntrega | date:'mediumDate' }}</span>
-          </div>
-        </div>
-
-        <!-- Panel Operativo Exclusivo para Despachadores y Administradores -->
-        <div class="despachador-control-card" *ngIf="authService.isDespachador() || authService.isAdmin()">
-          <div class="despachador-header">
-            <span class="role-pill-despachador"><i class="ph ph-shield-check"></i> OPERACIONES LOGÍSTICAS (ROL: DESPACHADOR)</span>
-            <h4>Actualizar Estado del Envío</h4>
-            <p>Acción autorizada por token de Azure Entra ID para cambiar el estado operativo:</p>
-          </div>
-          <div class="action-buttons-group">
-            <button 
-              class="btn-status-action btn-prep" 
-              [disabled]="envio.estado === 'PREPARANDO_PAQUETE' || cargando()"
-              (click)="actualizarEstado(envio.id!, 'PREPARANDO_PAQUETE')">
-              <i class="ph ph-package"></i> Preparando Paquete
-            </button>
-            <button 
-              class="btn-status-action btn-transit" 
-              [disabled]="envio.estado === 'EN_TRANSITO' || cargando()"
-              (click)="actualizarEstado(envio.id!, 'EN_TRANSITO')">
-              <i class="ph ph-truck"></i> Marcar En Tránsito
-            </button>
-            <button 
-              class="btn-status-action btn-delivered" 
-              [disabled]="envio.estado === 'ENTREGADO' || cargando()"
-              (click)="actualizarEstado(envio.id!, 'ENTREGADO')">
-              <i class="ph ph-house-line"></i> Marcar Entregado
-            </button>
-          </div>
-        </div>
+    <div class="stepper">
+      <div class="step" [class.done]="getStepIndex(envio.estado) >= 1">
+        <div class="step-dot"><i class="ph ph-receipt"></i></div>
+        <div class="step-text"><strong>Pedido Confirmado</strong><span>Orden #{{ envio.orderId }}</span></div>
+      </div>
+      <div class="step-bar" [class.done]="getStepIndex(envio.estado) >= 2"></div>
+      <div class="step" [class.done]="getStepIndex(envio.estado) >= 2">
+        <div class="step-dot"><i class="ph ph-package"></i></div>
+        <div class="step-text"><strong>Preparando Paquete</strong><span>Bodega central</span></div>
+      </div>
+      <div class="step-bar" [class.done]="getStepIndex(envio.estado) >= 3"></div>
+      <div class="step" [class.done]="getStepIndex(envio.estado) >= 3">
+        <div class="step-dot"><i class="ph ph-truck"></i></div>
+        <div class="step-text"><strong>En Tránsito</strong><span>{{ envio.empresaTransporte }}</span></div>
+      </div>
+      <div class="step-bar" [class.done]="getStepIndex(envio.estado) >= 4"></div>
+      <div class="step" [class.done]="getStepIndex(envio.estado) >= 4">
+        <div class="step-dot"><i class="ph ph-house-line"></i></div>
+        <div class="step-text"><strong>Entregado</strong><span>Destino final</span></div>
       </div>
     </div>
 
-    <!-- Lista Lateral de Despachos Recientes -->
-    <div class="tracking-sidebar">
-      <div class="sidebar-card">
-        <h4 class="sidebar-title"><i class="ph ph-clock-counter-clockwise"></i> Despachos Recientes</h4>
-        <div class="shipment-list">
-          <div 
-            *ngFor="let item of listaEnvios()" 
-            class="shipment-item"
-            [class.selected]="envioEncontrado()?.id === item.id"
-            (click)="seleccionarGuia(item)">
-            <div class="item-top">
-              <span class="item-code">{{ item.numeroGuia }}</span>
-              <span class="item-badge" [class]="item.estado.toLowerCase()">{{ item.estado.replace('_', ' ') }}</span>
-            </div>
-            <div class="item-bottom">
-              <span>Orden #{{ item.orderId }}</span>
-              <span>{{ item.destinatario }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="detail-grid">
+      <div><span class="detail-label">Destinatario</span><strong>{{ envio.destinatario }}</strong></div>
+      <div><span class="detail-label">Dirección de entrega</span><strong>{{ envio.direccionEntrega || 'Por confirmar' }}</strong></div>
+      <div><span class="detail-label">Fecha de despacho</span><strong>{{ envio.fechaDespacho | date:'dd/MM/yyyy' }}</strong></div>
+      <div><span class="detail-label">Entrega estimada</span><strong>{{ envio.fechaEstimadaEntrega | date:'dd/MM/yyyy' }}</strong></div>
+    </div>
+
+    <div class="detail-actions" *ngIf="isStaff && siguienteAccion(envio.estado) as accion">
+      <button class="btn btn-blue" [disabled]="cargando()" (click)="actualizarEstado(envio, accion.estado)">
+        <i class="ph" [ngClass]="accion.icon"></i>
+        <span>{{ accion.label }}</span>
+      </button>
     </div>
   </div>
+
+  <!-- =====================================================================
+       STAFF ONLY: WMS OPERATIONS TABLE (T16)
+       ===================================================================== -->
+  <ng-container *ngIf="isStaff">
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-header"><span>Total Guías</span><i class="ph ph-list-numbers"></i></div>
+        <div class="kpi-value">{{ contadores().total }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span>Por Preparar</span><i class="ph ph-package"></i></div>
+        <div class="kpi-value">{{ contadores().preparando }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span>En Ruta</span><i class="ph ph-truck"></i></div>
+        <div class="kpi-value">{{ contadores().transito }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-header"><span>Entregados</span><i class="ph ph-check-circle"></i></div>
+        <div class="kpi-value">{{ contadores().entregados }}</div>
+      </div>
+    </div>
+
+    <div class="crm-card">
+      <div class="crm-card-header">
+        <div class="crm-card-title"><i class="ph ph-clipboard-text"></i> Guías de Despacho ({{ enviosFiltrados().length }})</div>
+        <div class="filter-pills">
+          <button
+            *ngFor="let e of estados"
+            type="button"
+            class="filter-pill"
+            [class.active]="filtroEstado() === e.key"
+            (click)="filtroEstado.set(e.key)">
+            {{ e.label }}
+          </button>
+        </div>
+      </div>
+
+      <div style="padding: 12px 16px; border-bottom: 1px solid var(--corp-100);">
+        <div class="search-box">
+          <i class="ph ph-funnel"></i>
+          <input
+            type="text"
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)"
+            placeholder="Filtrar por guía, orden o destinatario..."
+          />
+        </div>
+      </div>
+
+      <div class="crm-table-wrap" *ngIf="enviosFiltrados().length > 0">
+        <table class="crm-table">
+          <thead>
+            <tr>
+              <th>Guía</th>
+              <th>Orden</th>
+              <th>Destinatario</th>
+              <th>Transportista</th>
+              <th>Entrega Estimada</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let envio of enviosFiltrados()" [class.row-selected]="envioEncontrado()?.id === envio.id">
+              <td><button class="link-guide" (click)="seleccionarEnvio(envio)">{{ envio.numeroGuia }}</button></td>
+              <td>#{{ envio.orderId }}</td>
+              <td>
+                <strong>{{ envio.destinatario }}</strong>
+                <div class="cell-sub">{{ envio.direccionEntrega || 'Sin dirección' }}</div>
+              </td>
+              <td>{{ envio.empresaTransporte }}</td>
+              <td>{{ envio.fechaEstimadaEntrega | date:'dd/MM/yyyy' }}</td>
+              <td><span class="status-pill" [ngClass]="estadoBadge(envio.estado)">{{ estadoLabel(envio.estado) }}</span></td>
+              <td style="text-align: right;">
+                <button
+                  *ngIf="siguienteAccion(envio.estado) as accion"
+                  class="btn btn-outline btn-sm"
+                  [disabled]="cargando()"
+                  (click)="actualizarEstado(envio, accion.estado)">
+                  <i class="ph" [ngClass]="accion.icon"></i>
+                  <span>{{ accion.label }}</span>
+                </button>
+                <span *ngIf="!siguienteAccion(envio.estado)" class="cell-sub">Cerrado</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty-box" *ngIf="enviosFiltrados().length === 0">
+        <i class="ph ph-truck"></i>
+        <h4>Sin despachos para este filtro</h4>
+        <p>Las guías se generan automáticamente cuando se confirma una compra.</p>
+      </div>
+    </div>
+  </ng-container>
 </div>

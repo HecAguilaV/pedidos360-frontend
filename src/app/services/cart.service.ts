@@ -15,9 +15,11 @@ export class CartService {
   readonly isDrawerOpen = signal<boolean>(false);
   readonly isLoading = signal<boolean>(false);
 
-  // Computeds útiles para el UI
+  // Computeds útiles para el UI (CLP con desglose tributario chileno exacto: Neto = Total / 1.19)
   readonly totalItems = computed(() => this.cart().totalItems);
-  readonly totalAmount = computed(() => this.cart().totalAmount);
+  readonly totalAmount = computed(() => Math.round(this.cart().totalAmount));
+  readonly netAmount = computed(() => Math.round(this.totalAmount() / 1.19));
+  readonly ivaAmount = computed(() => this.totalAmount() - this.netAmount());
   readonly items = computed(() => this.cart().items);
 
   constructor(private http: HttpClient) {
@@ -140,7 +142,6 @@ export class CartService {
   sincronizarPostOrden(): void {
     localStorage.removeItem('pedidos360_cart_fallback');
     this.cart.set({ items: [], totalItems: 0, totalAmount: 0 });
-    setTimeout(() => this.cargarCarrito(), 400);
   }
 
   vaciarCarrito(): void {

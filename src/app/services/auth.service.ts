@@ -12,7 +12,7 @@ export interface UserProfile {
   username: string;
   roles: string[];
   scopes: string[];
-  provider?: 'AZURE_ENTRA' | 'AWS_COGNITO' | 'DEV_SIMULATOR';
+  provider?: 'AZURE_ENTRA' | 'AWS_COGNITO';
 }
 
 export interface CognitoRuntimeConfig {
@@ -66,14 +66,17 @@ export class AuthService {
   constructor() {
     this.fetchRuntimeConfigJson();
 
+    const stored = this.getStoredUser();
+    const storedToken = localStorage.getItem('p360_token') || '';
+    if (
+      (stored && (stored.username.includes('.local') || (stored as any).provider === 'DEV_SIMULATOR')) ||
+      storedToken.startsWith('mock-dev-jwt-')
+    ) {
+      this.clearSession();
+    }
+
     if (this.isMsalConfigured) {
-      const stored = this.getStoredUser();
-      if (stored && stored.username.includes('.local')) {
-        this.clearSession();
-      }
       this.initMsal();
-    } else if (!this.userSignal() && !environment.production) {
-      this.loginAsDevUser('ADMIN');
     }
   }
 
@@ -183,8 +186,7 @@ export class AuthService {
 
   async login(): Promise<void> {
     if (!this.isMsalConfigured) {
-      this.loginAsDevUser('ADMIN');
-      return;
+      throw new Error('Microsoft Entra ID no está configurado en este entorno.');
     }
 
     const pca = await this.initMsal();
@@ -518,36 +520,6 @@ export class AuthService {
     }
 
     this.clearSession();
-  }
-
-  loginAsDevUser(role: 'USER' | 'ADMIN' | 'DESPACHADOR'): void {
-    const devUser: UserProfile =
-      role === 'ADMIN'
-        ? {
-            name: 'Héctor Águila (Dev)',
-            username: 'hector.aguila@josecamposar.onmicrosoft.com',
-            roles: ['Administrador', 'ADMIN'],
-            scopes: ['pedidos360.access', 'pedidos.read', 'pedidos.write', 'productos.write', 'envios.write'],
-            provider: 'DEV_SIMULATOR'
-          }
-        : role === 'DESPACHADOR'
-          ? {
-              name: 'Operario Despacho (Dev)',
-              username: 'despacho_aguila@josecamposar.onmicrosoft.com',
-              roles: ['Despachador'],
-              scopes: ['pedidos360.access', 'pedidos.read', 'envios.write'],
-              provider: 'DEV_SIMULATOR'
-            }
-          : {
-              name: 'Cliente Demo (Dev)',
-              username: 'cliente@pedidos360.cl',
-              roles: ['Usuario'],
-              scopes: ['pedidos360.access', 'pedidos.read', 'pedidos.write'],
-              provider: 'DEV_SIMULATOR'
-            };
-
-    const mockToken = `mock-dev-jwt-${role.toLowerCase()}-${Date.now()}`;
-    this.setSession(devUser, mockToken);
   }
 
   getAccessToken(): string | null {

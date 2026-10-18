@@ -1,63 +1,84 @@
 <div class="store-layout">
-  <!-- Topbar Corporativo de E-Commerce -->
-  <!-- Topbar Corporativo de E-Commerce (Visible para invitados y usuarios autenticados) -->
+  <!-- Main E-Commerce & Operations Topbar -->
   <header class="store-navbar">
     <div class="navbar-container">
-      <!-- Marca / Logo -->
+      <!-- Brand / Logo -->
       <a [routerLink]="authService.isDespachador() ? '/tracking' : '/productos'" class="navbar-brand">
         <div class="brand-icon">
-          <i class="ph ph-cube-transparent"></i>
+          <i class="ph ph-package"></i>
         </div>
         <div class="brand-text">
           <span class="brand-title">Pedidos360</span>
-          <span class="brand-subtitle">ENTERPRISE CLOUD STORE</span>
+          <span class="brand-subtitle">COMERCIO & LOGÍSTICA</span>
         </div>
       </a>
 
-      <!-- Navegación Principal Adaptada por Rol -->
+      <!-- Role-Adapted Navigation -->
       <nav class="navbar-links">
-        <!-- Para Despachador: Enfocado exclusivamente en su operación logística -->
+        <!-- Dispatcher (WMS / Logistics Operations) -->
         <ng-container *ngIf="authService.isDespachador()">
           <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
             <i class="ph ph-truck"></i>
-            <span>Rastreo & Despachos</span>
+            <span>Consola de Despachos</span>
+          </a>
+          <a routerLink="/pedidos" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-clipboard-text"></i>
+            <span>Órdenes</span>
           </a>
         </ng-container>
 
-        <!-- Para Invitados, Clientes y Administradores -->
-        <ng-container *ngIf="!authService.isDespachador()">
+        <!-- Administrator (CRM Backoffice & TI Console) -->
+        <ng-container *ngIf="authService.isAdmin()">
           <a routerLink="/productos" routerLinkActive="active" class="nav-item">
-            <i class="ph ph-storefront"></i>
-            <span>Catálogo</span>
+            <i class="ph ph-boxes"></i>
+            <span>Inventario</span>
           </a>
-          <a *ngIf="authService.isAuthenticated()" routerLink="/pedidos" routerLinkActive="active" class="nav-item">
+          <a routerLink="/pedidos" routerLinkActive="active" class="nav-item">
             <i class="ph ph-receipt"></i>
-            <span>Mis Pedidos</span>
+            <span>Órdenes</span>
           </a>
           <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
             <i class="ph ph-truck"></i>
-            <span>Rastreo Despachos</span>
+            <span>Despachos</span>
           </a>
-          <a *ngIf="authService.isAdmin()" routerLink="/home" routerLinkActive="active" class="nav-item">
-            <i class="ph ph-chart-line-up"></i>
-            <span>Métricas Microservicios</span>
+          <a routerLink="/home" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-chart-bar"></i>
+            <span>Resumen</span>
+          </a>
+          <a routerLink="/ti-console" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-terminal-window"></i>
+            <span>Consola TI</span>
+          </a>
+        </ng-container>
+
+        <!-- Client / Guest (Classic Storefront) -->
+        <ng-container *ngIf="!authService.isAdmin() && !authService.isDespachador()">
+          <a routerLink="/productos" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-storefront"></i>
+            <span>Tienda</span>
+          </a>
+          <a *ngIf="authService.isAuthenticated()" routerLink="/pedidos" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-shopping-bag-open"></i>
+            <span>Mis Compras</span>
+          </a>
+          <a routerLink="/tracking" routerLinkActive="active" class="nav-item">
+            <i class="ph ph-truck"></i>
+            <span>Seguimiento</span>
           </a>
         </ng-container>
       </nav>
 
-      <!-- Controles de Usuario y Carrito -->
+      <!-- User Controls & Shopping Cart -->
       <div class="navbar-actions">
-        <!-- VISTA AUTENTICADA: Rol, Carrito y Perfil -->
+        <!-- AUTHENTICATED VIEW -->
         <ng-container *ngIf="authService.isAuthenticated()">
-          <!-- Badge con el Rol Real Autenticado -->
           <div class="user-role-badge" [class]="authService.primaryRole().toLowerCase()">
-            <i class="ph ph-crown" *ngIf="authService.isAdmin()"></i>
+            <i class="ph ph-shield-check" *ngIf="authService.isAdmin()"></i>
             <i class="ph ph-truck" *ngIf="authService.isDespachador()"></i>
             <i class="ph ph-user" *ngIf="!authService.isAdmin() && !authService.isDespachador()"></i>
             <span>{{ authService.primaryRole() }}</span>
           </div>
 
-          <!-- Botón de Carrito (Solo si no es Despachador) -->
           <button 
             *ngIf="!authService.isDespachador()"
             class="cart-trigger-btn" 
@@ -70,11 +91,10 @@
               </span>
             </div>
             <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
-              ${{ cartService.totalAmount() | number:'1.2-2' }}
+              ${{ cartService.totalAmount() | number:'1.0-0' }}
             </span>
           </button>
 
-          <!-- Perfil de Usuario Real -->
           <div class="user-menu" *ngIf="authService.currentUser() as user">
             <div class="user-info-text">
               <span class="user-display-name">{{ user.name }}</span>
@@ -83,15 +103,14 @@
             <div class="user-avatar" [title]="user.name">
               {{ (user.name || user.username).charAt(0).toUpperCase() }}
             </div>
-            <button class="btn-logout" (click)="authService.logout()" title="Cerrar sesión corporativa">
+            <button class="btn-logout" (click)="authService.logout()" title="Cerrar sesión">
               <i class="ph ph-sign-out"></i>
             </button>
           </div>
         </ng-container>
 
-        <!-- VISTA INVITADO / PÚBLICA (No Autenticado) -->
+        <!-- GUEST / PUBLIC VIEW -->
         <ng-container *ngIf="!authService.isAuthenticated()">
-          <!-- Carrito para Invitados -->
           <button 
             class="cart-trigger-btn" 
             (click)="cartService.toggleDrawer()" 
@@ -103,11 +122,10 @@
               </span>
             </div>
             <span class="cart-amount-text" *ngIf="cartService.totalAmount() > 0">
-              ${{ cartService.totalAmount() | number:'1.2-2' }}
+              ${{ cartService.totalAmount() | number:'1.0-0' }}
             </span>
           </button>
 
-          <!-- Botón Iniciar Sesión -->
           <a routerLink="/login" class="btn-nav-login">
             <i class="ph ph-user-circle"></i>
             <span>Iniciar Sesión</span>
@@ -117,12 +135,12 @@
     </div>
   </header>
 
-  <!-- Contenedor Principal de Vistas -->
+  <!-- Main Router View -->
   <main class="store-main">
     <router-outlet></router-outlet>
   </main>
 
-  <!-- Drawer Lateral del Carrito (Slide-over) -->
+  <!-- Shopping Cart Slide-over Drawer -->
   <div class="cart-drawer-overlay" *ngIf="cartService.isDrawerOpen()" (click)="cartService.closeDrawer()"></div>
   <aside class="cart-drawer" [class.open]="cartService.isDrawerOpen()">
     <div class="drawer-header">
@@ -136,16 +154,15 @@
       </button>
     </div>
 
-    <!-- Lista de Artículos -->
     <div class="drawer-body">
       <div *ngIf="cartService.items().length === 0" class="drawer-empty-state">
         <div class="empty-icon-circle">
           <i class="ph ph-shopping-cart"></i>
         </div>
         <h4>Tu carrito está vacío</h4>
-        <p>Explora nuestro catálogo de tecnología y agrega productos para iniciar una orden.</p>
+        <p>Explora nuestro catálogo y agrega productos para continuar con tu compra.</p>
         <button class="btn-start-shopping" (click)="cartService.closeDrawer()">
-          Ver Catálogo
+          Ir a la Tienda
         </button>
       </div>
 
@@ -157,7 +174,7 @@
           <div class="item-details">
             <div class="item-header-row">
               <span class="item-title">{{ item.productName }}</span>
-              <button class="btn-remove-item" (click)="cartService.eliminarItem(item.id!)" title="Eliminar">
+              <button class="btn-remove-item" (click)="cartService.eliminarItem(item.id!)" title="Eliminar artículo">
                 <i class="ph ph-trash"></i>
               </button>
             </div>
@@ -168,57 +185,56 @@
                 <span>{{ item.quantity }}</span>
                 <button (click)="cartService.actualizarCantidad(item.id!, item.quantity + 1)">+</button>
               </div>
-              <span class="item-price">${{ (item.subtotal || item.unitPrice * item.quantity) | number:'1.2-2' }}</span>
+              <span class="item-price">${{ (item.subtotal || item.unitPrice * item.quantity) | number:'1.0-0' }}</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Footer y Checkout -->
+    <!-- Cart Summary & Checkout (CLP + Chilean 19% IVA Breakdown) -->
     <div class="drawer-footer" *ngIf="cartService.items().length > 0">
       <div class="order-summary-box">
         <div class="summary-line">
-          <span>Subtotal</span>
-          <span>${{ (cartService.totalAmount() * 0.81) | number:'1.2-2' }}</span>
+          <span>Monto Neto</span>
+          <span>${{ cartService.netAmount() | number:'1.0-0' }}</span>
         </div>
         <div class="summary-line">
           <span>IVA (19%)</span>
-          <span>${{ (cartService.totalAmount() * 0.19) | number:'1.2-2' }}</span>
+          <span>${{ cartService.ivaAmount() | number:'1.0-0' }}</span>
+        </div>
+        <div class="summary-line">
+          <span>Despacho</span>
+          <span>Gratis</span>
         </div>
         <div class="summary-line total">
-          <span>Total a Pagar</span>
-          <span class="total-number">${{ cartService.totalAmount() | number:'1.2-2' }}</span>
+          <span>Total a Pagar (CLP)</span>
+          <span class="total-number">${{ cartService.totalAmount() | number:'1.0-0' }}</span>
         </div>
       </div>
 
-      <div class="event-architecture-notice">
-        <i class="ph ph-lightning"></i>
-        <span>Al confirmar, <strong>pedidos-service</strong> emite el evento <code>orden.creada</code> a <strong>RabbitMQ</strong>.</span>
-      </div>
-
-      <div *ngIf="checkoutError()" style="margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.85rem;">
-        <i class="ph ph-warning-circle"></i> {{ checkoutError() }}
+      <div *ngIf="checkoutError()" class="alert-banner error" style="margin-bottom: 0;">
+        <span><i class="ph ph-warning-circle"></i> {{ checkoutError() }}</span>
       </div>
 
       <button 
         class="btn-checkout" 
         [disabled]="checkoutLoading()" 
         (click)="realizarCheckout()">
-        <span *ngIf="!checkoutLoading()"><i class="ph ph-check-circle"></i> Confirmar Pedido y Pagar</span>
-        <span *ngIf="checkoutLoading()"><i class="ph ph-spinner ph-spin"></i> Procesando Compra...</span>
+        <span *ngIf="!checkoutLoading()"><i class="ph ph-check-circle"></i> Confirmar Compra</span>
+        <span *ngIf="checkoutLoading()"><i class="ph ph-spinner ph-spin"></i> Procesando...</span>
       </button>
     </div>
   </aside>
 
-  <!-- Modal de Éxito de Compra (Checkout Completed) -->
+  <!-- Checkout Confirmation Modal -->
   <div class="modal-backdrop" *ngIf="checkoutSuccessModal()">
     <div class="success-modal-card">
       <div class="success-icon-badge">
         <i class="ph ph-check"></i>
       </div>
-      <h3>¡Orden Confirmada con Éxito!</h3>
-      <p class="success-subtitle">Tu compra ha sido procesada de forma asíncrona mediante eventos de RabbitMQ.</p>
+      <h3>¡Compra Recibida!</h3>
+      <p class="success-subtitle">Hemos registrado tu pedido y enviado el comprobante electrónico a tu correo.</p>
 
       <div class="order-receipt-summary" *ngIf="lastOrderResult() as res">
         <div class="receipt-row">
@@ -226,25 +242,34 @@
           <strong>#{{ res.orderId }}</strong>
         </div>
         <div class="receipt-row">
-          <span>Total Pagado:</span>
-          <strong class="receipt-amount">${{ res.total | number:'1.2-2' }}</strong>
+          <span>Monto Neto:</span>
+          <span>${{ res.netAmount | number:'1.0-0' }}</span>
         </div>
         <div class="receipt-row">
-          <span>Código de Despacho:</span>
-          <span class="tracking-pill">{{ res.trackingNumber }}</span>
+          <span>IVA (19%):</span>
+          <span>${{ res.ivaAmount | number:'1.0-0' }}</span>
         </div>
         <div class="receipt-row">
-          <span>Comprobante / Boleta:</span>
-          <span class="email-notice"><i class="ph ph-envelope-simple-check"></i> Enviada a {{ res.email }}</span>
+          <span>Total (CLP):</span>
+          <strong class="receipt-amount">${{ res.total | number:'1.0-0' }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Guía de Despacho:</span>
+          <span class="tracking-pill" *ngIf="res.trackingNumber">{{ res.trackingNumber }}</span>
+          <span class="status-pill warning" *ngIf="!res.trackingNumber">En preparación de despacho</span>
+        </div>
+        <div class="receipt-row">
+          <span>Comprobante:</span>
+          <span class="email-notice"><i class="ph ph-envelope-simple-check"></i> {{ res.email }}</span>
         </div>
       </div>
 
       <div class="modal-actions-row">
-        <button class="btn-modal-tracking" (click)="irATracking(lastOrderResult()?.trackingNumber || '')">
-          <i class="ph ph-truck"></i> Ver Rastreo en Vivo
+        <button class="btn-modal-tracking" (click)="irATracking(lastOrderResult()?.trackingNumber || null)">
+          <i class="ph ph-truck"></i> Ver Estado del Envío
         </button>
         <button class="btn-modal-close" (click)="cerrarModalExito()">
-          Cerrar
+          Seguir Comprando
         </button>
       </div>
     </div>

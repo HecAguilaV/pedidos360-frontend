@@ -18,7 +18,14 @@ export class App {
   checkoutLoading = signal<boolean>(false);
   checkoutSuccessModal = signal<boolean>(false);
   checkoutError = signal<string | null>(null);
-  lastOrderResult = signal<{ orderId: number; total: number; trackingNumber: string; email: string } | null>(null);
+  lastOrderResult = signal<{
+    orderId: number;
+    total: number;
+    netAmount: number;
+    ivaAmount: number;
+    trackingNumber: string | null;
+    email: string;
+  } | null>(null);
 
   constructor(
     public authService: AuthService,
@@ -32,7 +39,6 @@ export class App {
     const items = this.cartService.items();
     if (items.length === 0) return;
 
-    // Si el usuario es un invitado, redirigir a inicio de sesión
     if (!this.authService.isAuthenticated()) {
       this.cartService.closeDrawer();
       this.router.navigate(['/login'], { queryParams: { returnUrl: 'checkout' } });
@@ -46,11 +52,13 @@ export class App {
     const clienteNombre = currentUser ? currentUser.name : 'Cliente Pedidos360';
     const clienteEmail = (currentUser && currentUser.username) ? currentUser.username : 'cliente@pedidos360.cl';
     const total = this.cartService.totalAmount();
+    const netAmount = this.cartService.netAmount();
+    const ivaAmount = this.cartService.ivaAmount();
 
     const nuevoPedido: Pedido = {
       cliente: clienteNombre,
       clienteEmail: clienteEmail,
-      estado: 'PAGADA',
+      estado: 'PENDIENTE',
       total: total,
       items: items.map(item => ({
         productCode: item.productCode,
@@ -64,11 +72,13 @@ export class App {
       next: (pedidoCreado) => {
         const orderId = pedidoCreado.id!;
         this.enviosService.obtenerPorOrden(orderId).subscribe((envio) => {
-          const trackingNumber = envio?.numeroGuia || `TRACK-2026-${String(orderId).padStart(5, '0')}`;
+          const trackingNumber = envio?.numeroGuia || null;
 
           this.lastOrderResult.set({
             orderId,
             total,
+            netAmount,
+            ivaAmount,
             trackingNumber,
             email: clienteEmail
           });
@@ -80,9 +90,9 @@ export class App {
         });
       },
       error: (err) => {
-        console.error('Error al procesar el checkout en pedidos-service:', err);
+        console.error('Error al procesar el checkout:', err);
         this.checkoutLoading.set(false);
-        this.checkoutError.set('No se pudo registrar la orden. Verifica que el servicio de pedidos esté disponible e intenta nuevamente.');
+        this.checkoutError.set('No se pudo registrar tu compra en este momento. Intenta nuevamente en unos segundos.');
       }
     });
   }
@@ -91,11 +101,10 @@ export class App {
     this.checkoutSuccessModal.set(false);
   }
 
-  irATracking(guia: string): void {
+  irATracking(guia: string | null): void {
     this.checkoutSuccessModal.set(false);
     this.router.navigate(['/tracking'], {
       queryParams: guia ? { guia } : {}
     });
   }
 }
-
