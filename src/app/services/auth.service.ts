@@ -167,6 +167,16 @@ export class AuthService {
         await instance.initialize();
         this.pca = instance;
 
+        try {
+          const redirectResponse = await instance.handleRedirectPromise();
+          if (redirectResponse && redirectResponse.account) {
+            instance.setActiveAccount(redirectResponse.account);
+            this.handleAuthResponse(redirectResponse);
+          }
+        } catch (redirectErr) {
+          console.warn('Advertencia en handleRedirectPromise de MSAL:', redirectErr);
+        }
+
         const accounts = instance.getAllAccounts();
         if (accounts.length > 0) {
           instance.setActiveAccount(accounts[0]);
@@ -194,6 +204,16 @@ export class AuthService {
       throw new Error('No se pudo inicializar el cliente MSAL de Microsoft');
     }
 
+    // Ensure prior redirect or interaction has completed
+    try {
+      await pca.handleRedirectPromise();
+    } catch (e) {
+      console.warn('Advertencia en handleRedirectPromise de MSAL previo a login:', e);
+    }
+
+    // Clear any orphaned interaction locks left by closed/crashed popups
+    this.clearMsalInteractionLocks();
+
     const requestScopes = ['openid', 'profile', 'email'];
     if (environment.msal.apiScope) {
       requestScopes.push(environment.msal.apiScope);
@@ -207,8 +227,25 @@ export class AuthService {
       pca.setActiveAccount(response.account);
       this.handleAuthResponse(response);
     } catch (error: any) {
+      const errorStr = (error?.errorCode || error?.message || '').toLowerCase();
+      if (errorStr.includes('interaction_in_progress')) {
+        this.clearMsalInteractionLocks();
+        console.warn('Bloqueo interaction_in_progress detectado. Reintentando loginPopup tras limpiar locks...');
+        try {
+          const retryResponse: AuthenticationResult = await pca.loginPopup({
+            scopes: requestScopes,
+            prompt: 'select_account'
+          });
+          pca.setActiveAccount(retryResponse.account);
+          this.handleAuthResponse(retryResponse);
+          return;
+        } catch (retryErr: any) {
+          console.error('Error en reintento de loginPopup con Microsoft Entra ID:', retryErr);
+          throw this.sanitizeMsalErrorMessage(retryErr);
+        }
+      }
       console.error('Error durante loginPopup con Microsoft Entra ID:', error);
-      throw error;
+      throw this.sanitizeMsalErrorMessage(error);
     }
   }
 
@@ -504,9 +541,11 @@ export class AuthService {
     this.tokenSignal.set(null);
     localStorage.removeItem('p360_user');
     localStorage.removeItem('p360_token');
+    this.clearMsalInteractionLocks();
   }
 
   async logout(): Promise<void> {
+    this.clearMsalInteractionLocks();
     const current = this.userSignal();
     if (current?.provider === 'AZURE_ENTRA' && this.isMsalConfigured && this.pca) {
       try {
@@ -520,6 +559,47 @@ export class AuthService {
     }
 
     this.clearSession();
+  }
+
+  clearMsalInteractionLocks(): void {
+    if (typeof window === 'undefined') return;
+    const storages = [sessionStorage, localStorage];
+    for (const storage of storages) {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (
+            key &&
+            (key.includes('interaction.status') ||
+              key.includes('interaction_status') ||
+              key.includes('temporary.cache') ||
+              key.includes('acquireToken.request'))
+          ) {
+            keysToRemove.push(key);
+          }
+        }
+        for (const key of keysToRemove) {
+          storage.removeItem(key);
+        }
+      } catch {
+        // Storage access may fail in restricted sandboxes
+      }
+    }
+  }
+
+  private sanitizeMsalErrorMessage(error: any): Error {
+    const rawMsg = (error?.message || error?.errorMessage || error?.errorCode || String(error)).toLowerCase();
+    if (rawMsg.includes('popup_window_error') || rawMsg.includes('failed to open popup window') || rawMsg.includes('popup')) {
+      return new Error('El navegador bloqueó la ventana emergente de inicio de sesión de Microsoft. Por favor permite las ventanas emergentes (popups) en la barra de direcciones de tu navegador.');
+    }
+    if (rawMsg.includes('user_cancelled') || rawMsg.includes('user cancelled')) {
+      return new Error('Inicio de sesión cancelado por el usuario.');
+    }
+    if (rawMsg.includes('interaction_in_progress')) {
+      return new Error('Había una interacción de autenticación previa en progreso. Hemos restablecido la conexión; por favor haz clic nuevamente para ingresar.');
+    }
+    return new Error(error?.message || 'No se pudo completar el inicio de sesión con Microsoft Entra ID.');
   }
 
   getAccessToken(): string | null {
