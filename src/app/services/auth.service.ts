@@ -688,21 +688,39 @@ export class AuthService {
     const unameLower = (username || '').toLowerCase();
     const anameLower = (account.name || account.username || '').toLowerCase();
     let anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
-    try {
-      const c: any = claims;
-      for (const k of Object.keys(c)) {
-        const v = c[k];
-        if (typeof v === 'string') anyFieldLower += ' ' + v.toLowerCase();
-        else if (Array.isArray(v)) anyFieldLower += ' ' + v.join(' ').toLowerCase();
-      }
-    } catch {}
-    const isDespacho = anyFieldLower.includes('despacho');
-    const isLabUser =
+    let isDespacho = anyFieldLower.includes('despacho');
+    let isLabUser =
       anyFieldLower.includes('hector') ||
       anyFieldLower.includes('aguila') ||
       anyFieldLower.includes('josecamposar') ||
       anyFieldLower.includes('josecampos') ||
       anyFieldLower.includes('@josecamposar.onmicrosoft.com');
+
+    const scanAny = (p: any) => {
+      if (!p || typeof p !== 'object') return;
+      for (const k of Object.keys(p)) {
+        const v = p[k];
+        if (typeof v === 'string') {
+          const s = v.toLowerCase();
+          anyFieldLower += ' ' + s;
+          if (s.includes('despacho')) isDespacho = true;
+          if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos') || s.includes('@josecamposar.onmicrosoft.com')) isLabUser = true;
+        } else if (Array.isArray(v)) {
+          for (const it of v) {
+            if (typeof it === 'string') {
+              const s = it.toLowerCase();
+              anyFieldLower += ' ' + s;
+              if (s.includes('despacho')) isDespacho = true;
+              if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos') || s.includes('@josecamposar.onmicrosoft.com')) isLabUser = true;
+            } else if (it && typeof it === 'object') scanAny(it);
+          }
+        } else if (typeof v === 'object') scanAny(v);
+      }
+    };
+
+    try { scanAny(claims); } catch {}
+    try { scanAny(account); } catch {}
+    try { scanAny(this.decodeJwtPayload(storedToken)); } catch {}
 
     let finalRoles: string[] = roles;
     if (isDespacho) {
