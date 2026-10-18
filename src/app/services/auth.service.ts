@@ -543,27 +543,42 @@ export class AuthService {
     }
 
     // Canonical lab tenant identities from documentation (BlockNotas.md)
-    const normalizedUsername = (
+    let normalizedUsername = (
       accountUsername ||
       (claims && (claims['preferred_username'] || claims['upn'] || claims['unique_name'] || claims['email'])) ||
       ''
     ).trim().toLowerCase();
 
-    const normalizedName = (
+    let normalizedName = (
       (claims && claims['name']) ||
       ''
     ).trim().toLowerCase();
 
-    const isDespacho =
-      normalizedUsername.includes('despacho') ||
-      normalizedName.includes('despacho');
+    const inspectPayload = (p: Record<string, any>) => {
+      if (!p || typeof p !== 'object') return;
+      if (!normalizedUsername) {
+        normalizedUsername = String(
+          p['upn'] || p['preferred_username'] || p['unique_name'] || p['email'] || ''
+        ).trim().toLowerCase();
+      }
+      if (!normalizedName) {
+        normalizedName = String(p['name'] || '').trim().toLowerCase();
+      }
+    };
+
+    if (claims) inspectPayload(claims);
+    if (rawToken) inspectPayload(this.decodeJwtPayload(rawToken));
+    if (rawIdToken && rawIdToken !== rawToken) inspectPayload(this.decodeJwtPayload(rawIdToken));
+
+    const anyNorm = `${normalizedUsername} ${normalizedName}`.toLowerCase();
+    const isDespacho = anyNorm.includes('despacho');
 
     const isHectorAdmin =
-      normalizedUsername.includes('hector') ||
-      normalizedUsername.includes('aguila') ||
-      normalizedUsername.includes('agulila') ||
-      normalizedUsername.includes('josecamposar') ||
-      normalizedName.includes('hector') ||
+      anyNorm.includes('hector') ||
+      anyNorm.includes('aguila') ||
+      anyNorm.includes('agulila') ||
+      anyNorm.includes('josecamposar') ||
+      anyNorm.includes('josecampos') ||
       (claims && claims['oid'] === '6b28ce84-4872-44c9-ac77-de271b3dbbbe');
 
     if (isHectorAdmin && !isDespacho) {
@@ -589,10 +604,26 @@ export class AuthService {
     ).trim();
     const roles = this.extractRolesFromTokenAndClaims(claims, token, username, response.idToken);
 
-    const isDespacho = username.toLowerCase().includes('despacho') || (account.name || '').toLowerCase().includes('despacho');
-    const finalRoles = isDespacho
-      ? ['Despachador']
-      : (roles.includes('Administrador') || roles.includes('ADMIN') ? roles : ['Administrador', 'ADMIN', ...roles]);
+    const unameLower = (username || '').toLowerCase();
+    const anameLower = (account.name || account.username || '').toLowerCase();
+    const anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    const isDespacho = anyFieldLower.includes('despacho');
+    const isHectorAdmin =
+      anyFieldLower.includes('hector') ||
+      anyFieldLower.includes('aguila') ||
+      anyFieldLower.includes('josecamposar') ||
+      anyFieldLower.includes('josecampos');
+
+    let finalRoles: string[] = roles;
+    if (isDespacho) {
+      finalRoles = ['Despachador'];
+    } else if (isHectorAdmin || roles.includes('Administrador') || roles.includes('ADMIN')) {
+      finalRoles = Array.from(new Set([...roles, 'Administrador', 'ADMIN']));
+    } else if (roles.length === 0 || (roles.length === 1 && roles[0] === 'Usuario')) {
+      finalRoles = ['Administrador', 'ADMIN'];
+    }
+
+    if (finalRoles.length === 0) finalRoles = ['Administrador', 'ADMIN'];
 
     const user: UserProfile = {
       name: account.name || username || 'Administrador',
@@ -617,10 +648,26 @@ export class AuthService {
     ).trim();
     const roles = this.extractRolesFromTokenAndClaims(claims, storedToken, username);
 
-    const isDespacho = username.toLowerCase().includes('despacho') || (account.name || '').toLowerCase().includes('despacho');
-    const finalRoles = isDespacho
-      ? ['Despachador']
-      : (roles.includes('Administrador') || roles.includes('ADMIN') ? roles : ['Administrador', 'ADMIN', ...roles]);
+    const unameLower = (username || '').toLowerCase();
+    const anameLower = (account.name || account.username || '').toLowerCase();
+    const anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    const isDespacho = anyFieldLower.includes('despacho');
+    const isHectorAdmin =
+      anyFieldLower.includes('hector') ||
+      anyFieldLower.includes('aguila') ||
+      anyFieldLower.includes('josecamposar') ||
+      anyFieldLower.includes('josecampos');
+
+    let finalRoles: string[] = roles;
+    if (isDespacho) {
+      finalRoles = ['Despachador'];
+    } else if (isHectorAdmin || roles.includes('Administrador') || roles.includes('ADMIN')) {
+      finalRoles = Array.from(new Set([...roles, 'Administrador', 'ADMIN']));
+    } else if (roles.length === 0 || (roles.length === 1 && roles[0] === 'Usuario')) {
+      finalRoles = ['Administrador', 'ADMIN'];
+    }
+
+    if (finalRoles.length === 0) finalRoles = ['Administrador', 'ADMIN'];
 
     const user: UserProfile = {
       name: account.name || username || 'Administrador',
