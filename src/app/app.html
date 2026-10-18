@@ -197,6 +197,10 @@
         <span>Al confirmar, <strong>pedidos-service</strong> emite el evento <code>orden.creada</code> a <strong>RabbitMQ</strong>.</span>
       </div>
 
+      <div *ngIf="checkoutError()" style="margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.85rem;">
+        <i class="ph ph-warning-circle"></i> {{ checkoutError() }}
+      </div>
+
       <button 
         class="btn-checkout" 
         [disabled]="checkoutLoading()" 

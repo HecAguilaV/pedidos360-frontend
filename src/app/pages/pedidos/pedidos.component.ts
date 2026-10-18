@@ -1050,7 +1050,8 @@ export class PedidosComponent implements OnInit {
   }
 
   irATracking(orderId: number): void {
-    this.router.navigate(['/tracking']);
+    const guia = `TRACK-2026-${String(orderId).padStart(5, '0')}`;
+    this.router.navigate(['/tracking'], { queryParams: { guia } });
   }
 
   resetFilters(): void {

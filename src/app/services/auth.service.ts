@@ -123,22 +123,42 @@ export class AuthService {
     }
   }
 
+  private extractRolesFromTokenAndClaims(claims: Record<string, any>, rawToken?: string): string[] {
+    const extracted = new Set<string>();
+
+    const addFromList = (list: unknown) => {
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (typeof item === 'string' && item.trim()) {
+            extracted.add(item.trim());
+          }
+        }
+      }
+    };
+
+    addFromList(claims['roles']);
+    addFromList(claims['cognito:groups']);
+
+    if (rawToken && rawToken.split('.').length === 3) {
+      try {
+        const base64Url = rawToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(base64));
+        addFromList(payload['roles']);
+        addFromList(payload['cognito:groups']);
+      } catch {
+        // Ignore malformed token payload
+      }
+    }
+
+    return extracted.size > 0 ? Array.from(extracted) : ['Usuario'];
+  }
+
   private handleAuthResponse(response: AuthenticationResult): void {
     const account: AccountInfo = response.account;
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
-    let roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
-
-    // Si Entra ID no trajo roles explícitos en el token, inferir por cuenta para no trabar la experiencia
-    if (roles.length === 0) {
-      const email = (account.username || '').toLowerCase();
-      if (email.includes('despacho')) {
-        roles = ['Despachador'];
-      } else if (email.includes('hector') || email.includes('admin')) {
-        roles = ['Administrador'];
-      } else {
-        roles = ['Usuario'];
-      }
-    }
+    const token = response.accessToken || response.idToken;
+    const roles = this.extractRolesFromTokenAndClaims(claims, token);
 
     const user: UserProfile = {
       name: account.name || account.username,
@@ -146,8 +166,6 @@ export class AuthService {
       roles: roles,
       scopes: response.scopes || []
     };
-
-    const token = response.accessToken || response.idToken;
 
     this.userSignal.set(user);
     this.tokenSignal.set(token);
@@ -157,18 +175,8 @@ export class AuthService {
 
   private setUserFromAccount(account: AccountInfo): void {
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
-    let roles: string[] = Array.isArray(claims['roles']) ? claims['roles'] : [];
-
-    if (roles.length === 0) {
-      const email = (account.username || '').toLowerCase();
-      if (email.includes('despacho')) {
-        roles = ['Despachador'];
-      } else if (email.includes('hector') || email.includes('admin')) {
-        roles = ['Administrador'];
-      } else {
-        roles = ['Usuario'];
-      }
-    }
+    const storedToken = localStorage.getItem('p360_token') || undefined;
+    const roles = this.extractRolesFromTokenAndClaims(claims, storedToken);
 
     const user: UserProfile = {
       name: account.name || account.username,

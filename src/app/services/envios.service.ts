@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of } from 'rxjs';
+import { Observable, catchError, of, retry, timer } from 'rxjs';
 import { Envio } from '../models/envio.model';
 
 @Injectable({
@@ -12,32 +12,21 @@ export class EnviosService {
   constructor(private http: HttpClient) {}
 
   listarEnvios(): Observable<Envio[]> {
-    return this.http.get<Envio[]>(this.apiUrl).pipe(
-      catchError(() => of([
-        {
-          id: 1,
-          orderId: 101,
-          numeroGuia: 'TRACK-2026-00101-789',
-          destinatario: 'Héctor Águila',
-          destinatarioEmail: 'he.aguila@duocuc.cl',
-          direccionEntrega: 'Av. Providencia 1234, Santiago',
-          estado: 'EN_TRANSITO',
-          empresaTransporte: 'Pedidos360 Express',
-          fechaDespacho: new Date().toISOString(),
-          fechaEstimadaEntrega: new Date(Date.now() + 86400000 * 2).toISOString()
-        }
-      ]))
-    );
+    return this.http.get<Envio[]>(this.apiUrl);
   }
 
   obtenerPorTracking(numeroGuia: string): Observable<Envio | null> {
-    return this.http.get<Envio>(`${this.apiUrl}/tracking/${numeroGuia}`).pipe(
+    return this.http.get<Envio>(`${this.apiUrl}/tracking/${encodeURIComponent(numeroGuia)}`).pipe(
       catchError(() => of(null))
     );
   }
 
   obtenerPorOrden(orderId: number): Observable<Envio | null> {
     return this.http.get<Envio>(`${this.apiUrl}/orden/${orderId}`).pipe(
+      retry({
+        count: 4,
+        delay: () => timer(350)
+      }),
       catchError(() => of(null))
     );
   }
@@ -46,3 +35,4 @@ export class EnviosService {
     return this.http.put<Envio>(`${this.apiUrl}/${id}/estado`, { estado });
   }
 }
+

@@ -17,7 +17,7 @@
           type="text" 
           [(ngModel)]="codigoBusqueda" 
           (keyup.enter)="buscarGuia()"
-          placeholder="Ingresa tu código de seguimiento (ej: TRACK-2026-00101-789)..." 
+          placeholder="Ingresa tu código de seguimiento (ej: TRACK-2026-00101)..." 
         />
         <button class="btn-search" (click)="buscarGuia()">
           <span *ngIf="!cargando()">Rastrear</span>

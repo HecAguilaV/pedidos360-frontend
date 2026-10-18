@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { EnviosService } from '../../services/envios.service';
 import { Envio } from '../../models/envio.model';
 
@@ -22,6 +23,7 @@ export class TrackingComponent implements OnInit {
 
   constructor(
     private enviosService: EnviosService,
+    private route: ActivatedRoute,
     public authService: AuthService
   ) {}
 
@@ -31,7 +33,7 @@ export class TrackingComponent implements OnInit {
       next: (actualizado) => {
         this.cargando.set(false);
         this.envioEncontrado.set(actualizado);
-        this.cargarEnviosRecientes();
+        this.cargarEnviosRecientes(false);
       },
       error: (err) => {
         this.cargando.set(false);
@@ -41,14 +43,35 @@ export class TrackingComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargarEnviosRecientes();
+    const initialGuia = this.route.snapshot.queryParamMap.get('guia');
+    if (initialGuia && initialGuia.trim()) {
+      this.codigoBusqueda = initialGuia.trim();
+      this.cargarEnviosRecientes(false);
+      this.buscarGuia();
+    } else {
+      this.cargarEnviosRecientes(true);
+    }
+
+    this.route.queryParamMap.subscribe(params => {
+      const guia = params.get('guia');
+      if (guia && guia.trim() && guia.trim() !== this.codigoBusqueda) {
+        this.codigoBusqueda = guia.trim();
+        this.buscarGuia();
+      }
+    });
   }
 
-  cargarEnviosRecientes(): void {
-    this.enviosService.listarEnvios().subscribe(data => {
-      this.listaEnvios.set(data);
-      if (data.length > 0 && !this.envioEncontrado()) {
-        this.envioEncontrado.set(data[0]);
+  cargarEnviosRecientes(selectFirstIfEmpty: boolean = true): void {
+    this.enviosService.listarEnvios().subscribe({
+      next: (data) => {
+        this.listaEnvios.set(data);
+        if (selectFirstIfEmpty && data.length > 0 && !this.envioEncontrado()) {
+          this.envioEncontrado.set(data[0]);
+        }
+      },
+      error: (err) => {
+        console.error('Error cargando envíos recientes:', err);
+        this.listaEnvios.set([]);
       }
     });
   }
@@ -65,12 +88,12 @@ export class TrackingComponent implements OnInit {
         this.envioEncontrado.set(envio);
         this.noEncontrado.set(false);
       } else {
-        // Buscar en la lista local o fallback
         const local = this.listaEnvios().find(e => e.numeroGuia.toLowerCase().includes(this.codigoBusqueda.toLowerCase().trim()));
         if (local) {
           this.envioEncontrado.set(local);
           this.noEncontrado.set(false);
         } else {
+          this.envioEncontrado.set(null);
           this.noEncontrado.set(true);
         }
       }

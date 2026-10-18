@@ -4,6 +4,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { AuthService } from './services/auth.service';
 import { CartService } from './services/cart.service';
 import { PedidosService } from './services/pedidos.service';
+import { EnviosService } from './services/envios.service';
 import { Pedido } from './models/pedido.model';
 
 @Component({
@@ -16,12 +17,14 @@ import { Pedido } from './models/pedido.model';
 export class App {
   checkoutLoading = signal<boolean>(false);
   checkoutSuccessModal = signal<boolean>(false);
+  checkoutError = signal<string | null>(null);
   lastOrderResult = signal<{ orderId: number; total: number; trackingNumber: string; email: string } | null>(null);
 
   constructor(
     public authService: AuthService,
     public cartService: CartService,
     private pedidosService: PedidosService,
+    private enviosService: EnviosService,
     private router: Router
   ) {}
 
@@ -37,10 +40,11 @@ export class App {
     }
 
     this.checkoutLoading.set(true);
+    this.checkoutError.set(null);
 
     const currentUser = this.authService.currentUser();
     const clienteNombre = currentUser ? currentUser.name : 'Cliente Pedidos360';
-    const clienteEmail = (currentUser && currentUser.username) ? currentUser.username : 'he.aguila@duocuc.cl';
+    const clienteEmail = (currentUser && currentUser.username) ? currentUser.username : 'cliente@pedidos360.cl';
     const total = this.cartService.totalAmount();
 
     const nuevoPedido: Pedido = {
@@ -56,41 +60,29 @@ export class App {
       }))
     };
 
-
     this.pedidosService.createPedido(nuevoPedido).subscribe({
       next: (pedidoCreado) => {
-        const orderId = pedidoCreado.id || Math.floor(1000 + Math.random() * 9000);
-        const trackingNumber = `TRACK-2026-${String(orderId).padStart(5, '0')}`;
+        const orderId = pedidoCreado.id!;
+        this.enviosService.obtenerPorOrden(orderId).subscribe((envio) => {
+          const trackingNumber = envio?.numeroGuia || `TRACK-2026-${String(orderId).padStart(5, '0')}`;
 
-        this.lastOrderResult.set({
-          orderId,
-          total,
-          trackingNumber,
-          email: clienteEmail
+          this.lastOrderResult.set({
+            orderId,
+            total,
+            trackingNumber,
+            email: clienteEmail
+          });
+
+          this.cartService.vaciarCarrito();
+          this.cartService.closeDrawer();
+          this.checkoutLoading.set(false);
+          this.checkoutSuccessModal.set(true);
         });
-
-        // Vaciar el carrito y cerrar drawer
-        this.cartService.vaciarCarrito();
-        this.cartService.closeDrawer();
-        this.checkoutLoading.set(false);
-        this.checkoutSuccessModal.set(true);
       },
-      error: () => {
-        // Fallback local en caso de que pedidos-service esté reconectando
-        const orderId = Math.floor(1000 + Math.random() * 9000);
-        const trackingNumber = `TRACK-2026-${String(orderId).padStart(5, '0')}`;
-
-        this.lastOrderResult.set({
-          orderId,
-          total,
-          trackingNumber,
-          email: clienteEmail
-        });
-
-        this.cartService.vaciarCarrito();
-        this.cartService.closeDrawer();
+      error: (err) => {
+        console.error('Error al procesar el checkout en pedidos-service:', err);
         this.checkoutLoading.set(false);
-        this.checkoutSuccessModal.set(true);
+        this.checkoutError.set('No se pudo registrar la orden. Verifica que el servicio de pedidos esté disponible e intenta nuevamente.');
       }
     });
   }
@@ -101,6 +93,9 @@ export class App {
 
   irATracking(guia: string): void {
     this.checkoutSuccessModal.set(false);
-    this.router.navigate(['/tracking']);
+    this.router.navigate(['/tracking'], {
+      queryParams: guia ? { guia } : {}
+    });
   }
 }
+
