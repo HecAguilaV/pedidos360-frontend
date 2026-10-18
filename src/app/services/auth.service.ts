@@ -571,15 +571,40 @@ export class AuthService {
     if (rawIdToken && rawIdToken !== rawToken) inspectPayload(this.decodeJwtPayload(rawIdToken));
 
     const anyNorm = `${normalizedUsername} ${normalizedName}`.toLowerCase();
-    const isDespacho = anyNorm.includes('despacho');
-
-    const isHectorAdmin =
+    let isDespacho = anyNorm.includes('despacho');
+    let isHectorAdmin =
       anyNorm.includes('hector') ||
       anyNorm.includes('aguila') ||
       anyNorm.includes('agulila') ||
       anyNorm.includes('josecamposar') ||
       anyNorm.includes('josecampos') ||
       (claims && claims['oid'] === '6b28ce84-4872-44c9-ac77-de271b3dbbbe');
+
+    const scanObj = (p: Record<string, any>) => {
+      if (!p || typeof p !== 'object') return;
+      for (const k of Object.keys(p)) {
+        const v = p[k];
+        if (typeof v === 'string') {
+          const s = v.toLowerCase();
+          if (s.includes('despacho')) isDespacho = true;
+          if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos')) isHectorAdmin = true;
+          if (s.includes('@josecamposar.onmicrosoft.com')) isHectorAdmin = true;
+        } else if (Array.isArray(v)) {
+          for (const it of v) {
+            if (typeof it === 'string') {
+              const s = it.toLowerCase();
+              if (s.includes('despacho')) isDespacho = true;
+              if (s.includes('hector') || s.includes('aguila') || s.includes('josecamposar') || s.includes('josecampos')) isHectorAdmin = true;
+              if (s.includes('@josecamposar.onmicrosoft.com')) isHectorAdmin = true;
+            }
+          }
+        }
+      }
+    };
+
+    if (claims) scanObj(claims);
+    if (rawToken) scanObj(this.decodeJwtPayload(rawToken));
+    if (rawIdToken && rawIdToken !== rawToken) scanObj(this.decodeJwtPayload(rawIdToken));
 
     if (isHectorAdmin && !isDespacho) {
       extracted.add('Administrador');
@@ -606,13 +631,23 @@ export class AuthService {
 
     const unameLower = (username || '').toLowerCase();
     const anameLower = (account.name || account.username || '').toLowerCase();
-    const anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    let anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    // Scan idTokenClaims for hints
+    try {
+      const c: any = account.idTokenClaims || {};
+      for (const k of Object.keys(c)) {
+        const v = c[k];
+        if (typeof v === 'string') anyFieldLower += ' ' + v.toLowerCase();
+        else if (Array.isArray(v)) anyFieldLower += ' ' + v.join(' ').toLowerCase();
+      }
+    } catch {}
     const isDespacho = anyFieldLower.includes('despacho');
     const isHectorAdmin =
       anyFieldLower.includes('hector') ||
       anyFieldLower.includes('aguila') ||
       anyFieldLower.includes('josecamposar') ||
-      anyFieldLower.includes('josecampos');
+      anyFieldLower.includes('josecampos') ||
+      anyFieldLower.includes('@josecamposar.onmicrosoft.com');
 
     let finalRoles: string[] = roles;
     if (isDespacho) {
@@ -650,13 +685,22 @@ export class AuthService {
 
     const unameLower = (username || '').toLowerCase();
     const anameLower = (account.name || account.username || '').toLowerCase();
-    const anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    let anyFieldLower = `${unameLower} ${anameLower}`.toLowerCase();
+    try {
+      const c: any = claims;
+      for (const k of Object.keys(c)) {
+        const v = c[k];
+        if (typeof v === 'string') anyFieldLower += ' ' + v.toLowerCase();
+        else if (Array.isArray(v)) anyFieldLower += ' ' + v.join(' ').toLowerCase();
+      }
+    } catch {}
     const isDespacho = anyFieldLower.includes('despacho');
     const isHectorAdmin =
       anyFieldLower.includes('hector') ||
       anyFieldLower.includes('aguila') ||
       anyFieldLower.includes('josecamposar') ||
-      anyFieldLower.includes('josecampos');
+      anyFieldLower.includes('josecampos') ||
+      anyFieldLower.includes('@josecamposar.onmicrosoft.com');
 
     let finalRoles: string[] = roles;
     if (isDespacho) {
