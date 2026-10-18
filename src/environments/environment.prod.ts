@@ -1,7 +1,12 @@
 const resolveHostBase = (port: number, path: string): string => {
   if (typeof window !== 'undefined') {
-    // When served behind Nginx on port 80/443, use same-origin relative proxy path
-    if (window.location.port === '' || window.location.port === '80' || window.location.port === '443') {
+    // When served behind Nginx on port 80, 443, or 8080, use same-origin relative proxy path
+    if (
+      window.location.port === '' ||
+      window.location.port === '80' ||
+      window.location.port === '443' ||
+      window.location.port === '8080'
+    ) {
       return path;
     }
     return `${window.location.protocol}//${window.location.hostname}:${port}${path}`;

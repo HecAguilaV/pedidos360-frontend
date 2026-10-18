@@ -86,6 +86,12 @@ import { Pedido } from '../../models/pedido.model';
           </button>
           <button 
             class="status-pill-btn" 
+            [class.active]="filterEstado === 'PAGADO'" 
+            (click)="filterEstado = 'PAGADO'">
+            Pagados P2P
+          </button>
+          <button 
+            class="status-pill-btn" 
             [class.active]="filterEstado === 'CONFIRMADO'" 
             (click)="filterEstado = 'CONFIRMADO'">
             Confirmados
@@ -134,6 +140,9 @@ import { Pedido } from '../../models/pedido.model';
               <span class="event-dispatched-badge">
                 <i class="ph ph-lightning"></i> orden.creada
               </span>
+              <span class="event-dispatched-badge" *ngIf="ped.estado === 'PAGADO'">
+                <i class="ph ph-arrows-left-right"></i> pago.procesado (P2P)
+              </span>
               <span class="order-status-badge" [ngClass]="ped.estado.toLowerCase()">
                 <i class="ph" [ngClass]="getStatusIcon(ped.estado)"></i>
                 <span>{{ ped.estado }}</span>
@@ -148,6 +157,9 @@ import { Pedido } from '../../models/pedido.model';
               <div class="client-details">
                 <span class="client-label">CLIENTE / RAZÓN SOCIAL</span>
                 <strong class="client-name">{{ ped.cliente }}</strong>
+                <small *ngIf="ped.items && ped.items.length > 0" style="color: var(--corp-500); font-size: 0.75rem;">
+                  {{ ped.items.length }} ítem(s): {{ ped.items[0].productName }} (x{{ ped.items[0].quantity }})
+                </small>
               </div>
             </div>
 
@@ -617,7 +629,8 @@ import { Pedido } from '../../models/pedido.model';
       color: #6d28d9;
     }
 
-    .order-status-badge.entregado {
+    .order-status-badge.entregado,
+    .order-status-badge.pagado {
       background: var(--commerce-emerald-subtle);
       color: var(--commerce-emerald);
     }
@@ -1027,6 +1040,7 @@ export class PedidosComponent implements OnInit {
     switch (status) {
       case 'PENDIENTE': return 'ph-clock';
       case 'CONFIRMADO': return 'ph-check-circle';
+      case 'PAGADO': return 'ph-credit-card';
       case 'ENVIADO': return 'ph-truck';
       case 'ENTREGADO': return 'ph-house-line';
       default: return 'ph-circle';
@@ -1076,6 +1090,7 @@ export class PedidosComponent implements OnInit {
         this.newPedido = { cliente: '', estado: 'CONFIRMADO', total: 0 };
         this.closeModal();
         this.loadPedidos();
+        setTimeout(() => this.loadPedidos(), 700);
       },
       error: (err) => {
         console.error('Error al crear pedido:', err);
