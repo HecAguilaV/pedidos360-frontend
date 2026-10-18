@@ -1,0 +1,10 @@
+{
+  "cognito": {
+    "domain": "",
+    "clientId": "",
+    "userPoolId": "",
+    "region": "us-east-1",
+    "redirectUri": "",
+    "scopes": "openid profile email"
+  }
+}

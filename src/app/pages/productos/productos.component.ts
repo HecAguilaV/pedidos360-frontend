@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -424,7 +424,9 @@ export class ProductosComponent implements OnInit {
     private productosService: ProductosService,
     public authService: AuthService,
     private cartService: CartService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
@@ -437,6 +439,7 @@ export class ProductosComponent implements OnInit {
     if (cached && cached.length > 0) {
       this.productos = [...cached];
       this.loading = false;
+      this.cdr.detectChanges();
     } else {
       this.loading = true;
     }
@@ -477,14 +480,20 @@ export class ProductosComponent implements OnInit {
     }
     this.productosService.getProductos().subscribe({
       next: (data) => {
-        this.productos = data;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.productos = data;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Error al cargar productos:', err);
-        this.message = 'No fue posible cargar el catálogo en este momento.';
-        this.isError = true;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.message = 'No fue posible cargar el catálogo en este momento.';
+          this.isError = true;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -553,17 +562,23 @@ export class ProductosComponent implements OnInit {
     this.loading = true;
     this.productosService.createProducto(this.newProducto).subscribe({
       next: (created) => {
-        this.message = `Producto "${created.nombre}" registrado correctamente.`;
-        this.isError = false;
-        this.newProducto = { codigo: '', nombre: '', descripcion: '', precio: 0, stock: 0 };
-        this.closeModal();
-        this.loadProductos();
+        this.ngZone.run(() => {
+          this.message = `Producto "${created.nombre}" registrado correctamente.`;
+          this.isError = false;
+          this.newProducto = { codigo: '', nombre: '', descripcion: '', precio: 0, stock: 0 };
+          this.closeModal();
+          this.loadProductos();
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Error al crear producto:', err);
-        this.message = 'No se pudo registrar el producto. Verifica tus permisos o si el código ya existe.';
-        this.isError = true;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.message = 'No se pudo registrar el producto. Verifica tus permisos o si el código ya existe.';
+          this.isError = true;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -572,14 +587,20 @@ export class ProductosComponent implements OnInit {
     if (!confirm(`¿Confirmas eliminar el producto #${id} del catálogo?`)) return;
     this.productosService.deleteProducto(id).subscribe({
       next: () => {
-        this.message = `Producto #${id} eliminado.`;
-        this.isError = false;
-        this.loadProductos();
+        this.ngZone.run(() => {
+          this.message = `Producto #${id} eliminado.`;
+          this.isError = false;
+          this.loadProductos();
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Error al eliminar producto:', err);
-        this.message = 'No se pudo eliminar el producto.';
-        this.isError = true;
+        this.ngZone.run(() => {
+          this.message = 'No se pudo eliminar el producto.';
+          this.isError = true;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
