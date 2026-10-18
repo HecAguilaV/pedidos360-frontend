@@ -512,7 +512,9 @@ export class LoginComponent implements OnInit {
   }
 
   redirectByRole(): void {
-    if (this.authService.isDespachador()) {
+    if (this.authService.isAdmin()) {
+      this.router.navigate(['/home']);
+    } else if (this.authService.isDespachador()) {
       this.router.navigate(['/tracking']);
     } else if (this.returnUrl === 'checkout') {
       this.router.navigate(['/productos']).then(() => {
