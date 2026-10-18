@@ -33,12 +33,26 @@ import { Producto } from '../../models/producto.model';
             <p class="page-subtitle">Administración de productos, control de existencias y precios en Pesos Chilenos (CLP).</p>
           </div>
           <div class="page-actions">
-            <button class="btn btn-outline" (click)="adminStorePreview = !adminStorePreview">
-              <i class="ph" [ngClass]="adminStorePreview ? 'ph-table' : 'ph-storefront'"></i>
-              <span>{{ adminStorePreview ? 'Ver Tabla CRM' : 'Vista Tienda' }}</span>
-            </button>
+            <div class="view-mode-tabs">
+              <button 
+                type="button" 
+                class="btn" 
+                [ngClass]="activeView === 'catalog' ? 'btn-blue' : 'btn-outline'"
+                (click)="activeView = 'catalog'">
+                <i class="ph ph-storefront"></i>
+                <span>Vista Catálogo</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn" 
+                [ngClass]="activeView === 'crm' ? 'btn-blue' : 'btn-outline'"
+                (click)="activeView = 'crm'">
+                <i class="ph ph-table"></i>
+                <span>Maestro CRM</span>
+              </button>
+            </div>
             <button class="btn btn-outline" (click)="loadProductos()">
-              <i class="ph ph-arrows-clockwise"></i>
+              <i class="ph ph-arrows-clockwise" [class.ph-spin]="loading"></i>
               <span>Actualizar</span>
             </button>
             <button class="btn btn-blue" (click)="openModal()">
@@ -141,9 +155,9 @@ import { Producto } from '../../models/producto.model';
       </div>
 
       <!-- =====================================================================
-           ADMIN CRM TABLE (Default for Admin unless previewing Storefront)
+           ADMIN CRM TABLE (Shown when Admin selects 'Maestro CRM' tab)
            ===================================================================== -->
-      <div class="crm-card" *ngIf="!loading && authService.isAdmin() && !adminStorePreview">
+      <div class="crm-card" *ngIf="authService.isAdmin() && activeView === 'crm'">
         <div class="crm-card-header">
           <div class="crm-card-title">
             <i class="ph ph-list-bullets"></i>
@@ -206,9 +220,9 @@ import { Producto } from '../../models/producto.model';
       </div>
 
       <!-- =====================================================================
-           STOREFRONT PRODUCT GRID (Client / Guest or Admin Store Preview)
+           STOREFRONT PRODUCT GRID (Default view for EVERYONE, including Admin)
            ===================================================================== -->
-      <ng-container *ngIf="!loading && (!authService.isAdmin() || adminStorePreview)">
+      <ng-container *ngIf="!authService.isAdmin() || activeView === 'catalog'">
         <div class="product-grid" *ngIf="filteredProductos.length > 0">
           <article class="product-card" *ngFor="let prod of filteredProductos">
             <div class="product-visual">
@@ -251,7 +265,7 @@ import { Producto } from '../../models/producto.model';
           </article>
         </div>
 
-        <div class="crm-card empty-box" *ngIf="filteredProductos.length === 0">
+        <div class="crm-card empty-box" *ngIf="filteredProductos.length === 0 && !loading">
           <i class="ph ph-magnifying-glass"></i>
           <h4>Sin resultados para tu búsqueda</h4>
           <p>Intenta con otro término o revisa todos los productos disponibles.</p>
@@ -368,6 +382,19 @@ import { Producto } from '../../models/producto.model';
       font-size: 0.82rem;
       font-weight: 700;
     }
+    .view-mode-tabs {
+      display: inline-flex;
+      gap: 4px;
+      background: var(--corp-100);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--corp-200);
+    }
+    .view-mode-tabs .btn {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      border-radius: var(--radius-sm);
+    }
   `]
 })
 export class ProductosComponent implements OnInit {
@@ -376,7 +403,8 @@ export class ProductosComponent implements OnInit {
   showModal = false;
   searchTerm = '';
   onlyInStock = false;
-  adminStorePreview = false;
+  activeView: 'catalog' | 'crm' = 'catalog';
+  adminStorePreview = true;
 
   message = '';
   isError = false;
@@ -403,6 +431,14 @@ export class ProductosComponent implements OnInit {
     if (this.authService.isDespachador()) {
       this.router.navigate(['/tracking']);
       return;
+    }
+    // Instant cache hydration: zero blank screen, zero loading lag
+    const cached = this.productosService.cachedProductos();
+    if (cached && cached.length > 0) {
+      this.productos = [...cached];
+      this.loading = false;
+    } else {
+      this.loading = true;
     }
     this.loadProductos();
   }
@@ -436,7 +472,9 @@ export class ProductosComponent implements OnInit {
   }
 
   loadProductos(): void {
-    this.loading = true;
+    if (this.productos.length === 0) {
+      this.loading = true;
+    }
     this.productosService.getProductos().subscribe({
       next: (data) => {
         this.productos = data;
