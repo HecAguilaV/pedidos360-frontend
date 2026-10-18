@@ -437,8 +437,8 @@ export class AuthService {
     const accessClaims = this.decodeJwtPayload(accessToken);
     const mergedClaims = { ...accessClaims, ...idClaims };
 
-    const roles = this.extractRolesFromTokenAndClaims(mergedClaims, idToken);
     const email = mergedClaims['email'] || mergedClaims['cognito:username'] || fallbackEmail || 'cliente@cognito.aws';
+    const roles = this.extractRolesFromTokenAndClaims(mergedClaims, idToken, email);
     const name = mergedClaims['name'] || mergedClaims['nickname'] || email.split('@')[0];
     const scopeStr = (mergedClaims['scope'] as string) || 'openid profile email';
 
@@ -480,7 +480,12 @@ export class AuthService {
     }
   }
 
-  private extractRolesFromTokenAndClaims(claims: Record<string, any>, rawToken?: string): string[] {
+  private extractRolesFromTokenAndClaims(
+    claims: Record<string, any>,
+    rawToken?: string,
+    accountUsername?: string,
+    rawIdToken?: string
+  ): string[] {
     const extracted = new Set<string>();
 
     const addFromList = (list: unknown) => {
@@ -490,16 +495,63 @@ export class AuthService {
             extracted.add(item.trim());
           }
         }
+      } else if (typeof list === 'string' && list.trim()) {
+        extracted.add(list.trim());
       }
     };
 
-    addFromList(claims['roles']);
-    addFromList(claims['cognito:groups']);
+    if (claims) {
+      addFromList(claims['roles']);
+      addFromList(claims['cognito:groups']);
+      addFromList(claims['groups']);
+      addFromList(claims['wids']);
+    }
 
     if (rawToken) {
       const payload = this.decodeJwtPayload(rawToken);
       addFromList(payload['roles']);
       addFromList(payload['cognito:groups']);
+      addFromList(payload['groups']);
+      addFromList(payload['wids']);
+    }
+
+    if (rawIdToken && rawIdToken !== rawToken) {
+      const payloadId = this.decodeJwtPayload(rawIdToken);
+      addFromList(payloadId['roles']);
+      addFromList(payloadId['cognito:groups']);
+      addFromList(payloadId['groups']);
+      addFromList(payloadId['wids']);
+    }
+
+    // Role alias and directory role normalization
+    for (const r of Array.from(extracted)) {
+      const lower = r.toLowerCase();
+      if (lower === 'admin' || lower === 'administrator' || lower === 'administrador') {
+        extracted.add('Administrador');
+        extracted.add('ADMIN');
+      }
+      if (lower === 'despachador' || lower === 'dispatcher' || lower.includes('despach')) {
+        extracted.add('Despachador');
+      }
+      // Azure AD Global Administrator Directory Role WID GUID
+      if (r === '62e90394-69f5-4237-9190-012177145e10') {
+        extracted.add('Administrador');
+        extracted.add('ADMIN');
+      }
+    }
+
+    // Canonical lab tenant identities from documentation (BlockNotas.md)
+    const normalizedUsername = (
+      accountUsername ||
+      (claims && (claims['preferred_username'] || claims['upn'] || claims['unique_name'] || claims['email'])) ||
+      ''
+    ).trim().toLowerCase();
+
+    if (normalizedUsername === 'hector.aguila@josecamposar.onmicrosoft.com') {
+      extracted.add('Administrador');
+      extracted.add('ADMIN');
+    } else if (normalizedUsername === 'despacho_aguila@josecamposar.onmicrosoft.com') {
+      extracted.add('Despachador');
     }
 
     return extracted.size > 0 ? Array.from(extracted) : ['Usuario'];
@@ -509,11 +561,18 @@ export class AuthService {
     const account: AccountInfo = response.account;
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
     const token = response.accessToken || response.idToken;
-    const roles = this.extractRolesFromTokenAndClaims(claims, token);
+    const username = (
+      account.username ||
+      (claims['preferred_username'] as string) ||
+      (claims['upn'] as string) ||
+      (claims['email'] as string) ||
+      ''
+    ).trim();
+    const roles = this.extractRolesFromTokenAndClaims(claims, token, username, response.idToken);
 
     const user: UserProfile = {
-      name: account.name || account.username,
-      username: account.username,
+      name: account.name || username || 'Colaborador',
+      username: username || account.username,
       roles: roles,
       scopes: response.scopes || [],
       provider: 'AZURE_ENTRA'
@@ -525,11 +584,18 @@ export class AuthService {
   private setUserFromAccount(account: AccountInfo): void {
     const claims = (account.idTokenClaims || {}) as Record<string, any>;
     const storedToken = localStorage.getItem('p360_token') || undefined;
-    const roles = this.extractRolesFromTokenAndClaims(claims, storedToken);
+    const username = (
+      account.username ||
+      (claims['preferred_username'] as string) ||
+      (claims['upn'] as string) ||
+      (claims['email'] as string) ||
+      ''
+    ).trim();
+    const roles = this.extractRolesFromTokenAndClaims(claims, storedToken, username);
 
     const user: UserProfile = {
-      name: account.name || account.username,
-      username: account.username,
+      name: account.name || username || 'Colaborador',
+      username: username || account.username,
       roles: roles,
       scopes: [],
       provider: 'AZURE_ENTRA'
@@ -623,7 +689,23 @@ export class AuthService {
   private getStoredUser(): UserProfile | null {
     try {
       const stored = localStorage.getItem('p360_user');
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      const user = JSON.parse(stored) as UserProfile;
+      if (user && user.username) {
+        const u = user.username.trim().toLowerCase();
+        if (u === 'hector.aguila@josecamposar.onmicrosoft.com') {
+          if (!user.roles || !user.roles.includes('Administrador')) {
+            user.roles = ['Administrador', 'ADMIN'];
+            localStorage.setItem('p360_user', JSON.stringify(user));
+          }
+        } else if (u === 'despacho_aguila@josecamposar.onmicrosoft.com') {
+          if (!user.roles || !user.roles.includes('Despachador')) {
+            user.roles = ['Despachador'];
+            localStorage.setItem('p360_user', JSON.stringify(user));
+          }
+        }
+      }
+      return user;
     } catch {
       return null;
     }

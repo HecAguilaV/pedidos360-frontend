@@ -272,5 +272,28 @@ describe('Pedidos360 Frontend Suite', () => {
       expect(authService.isAdmin()).toBe(false);
       expect(authService.primaryRole()).toBe('Despachador');
     });
+
+    it('maps canonical lab tenant administrator and dispatcher identities', () => {
+      const authService = TestBed.inject(AuthService);
+      const rolesAdmin: string[] = (authService as any).extractRolesFromTokenAndClaims(
+        { preferred_username: 'hector.aguila@josecamposar.onmicrosoft.com' }
+      );
+      expect(rolesAdmin).toContain('Administrador');
+      expect(rolesAdmin).toContain('ADMIN');
+
+      const rolesDisp: string[] = (authService as any).extractRolesFromTokenAndClaims(
+        { upn: 'despacho_aguila@josecamposar.onmicrosoft.com' }
+      );
+      expect(rolesDisp).toContain('Despachador');
+    });
+
+    it('maps Microsoft Entra ID directory roles and wids', () => {
+      const authService = TestBed.inject(AuthService);
+      const rolesWid: string[] = (authService as any).extractRolesFromTokenAndClaims(
+        { wids: ['62e90394-69f5-4237-9190-012177145e10'] }
+      );
+      expect(rolesWid).toContain('Administrador');
+      expect(rolesWid).toContain('ADMIN');
+    });
   });
 });

@@ -434,6 +434,9 @@ export class ProductosComponent implements OnInit {
       this.router.navigate(['/tracking']);
       return;
     }
+    if (this.authService.isAdmin()) {
+      this.activeView = 'crm';
+    }
     // Instant cache hydration: zero blank screen, zero loading lag
     const cached = this.productosService.cachedProductos();
     if (cached && cached.length > 0) {
