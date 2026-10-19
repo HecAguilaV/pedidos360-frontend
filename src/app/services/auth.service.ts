@@ -214,14 +214,6 @@ export class AuthService {
 
     const pca = await this.initMsal();
     if (!pca) {
-      if (
-        this.msalInitError?.includes('crypto_nonexistent') ||
-        (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-      ) {
-        throw new Error(
-          'El navegador bloqueó la criptografía de MSAL (crypto_nonexistent) porque estás accediendo por HTTP a una IP externa. La API Web Crypto exige un origen seguro (HTTPS o http://localhost:4200 vía túnel SSH) para ejecutar el flujo con Microsoft Authenticator.'
-        );
-      }
       throw new Error(this.msalInitError || 'No se pudo inicializar el cliente MSAL de Microsoft');
     }
 

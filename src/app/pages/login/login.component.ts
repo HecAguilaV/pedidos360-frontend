@@ -232,13 +232,6 @@ import { CartService } from '../../services/cart.service';
               </div>
             </div>
 
-            <div class="alert-banner warning" *ngIf="isNonSecureContext" style="margin-top: 14px; margin-bottom: 0;">
-              <span>
-                <i class="ph ph-warning-circle"></i>
-                <strong>Origen no seguro detectado:</strong> El navegador deshabilita la API criptográfica de MSAL al acceder por HTTP a una IP pública. Para autenticarte con Microsoft Authenticator, accede a través de <code>http://localhost:4200</code> (túnel SSH) o HTTPS.
-              </span>
-            </div>
-
             <button
               type="button"
               class="btn btn-blue btn-full"
@@ -484,11 +477,6 @@ export class LoginComponent implements OnInit {
     return this.hasMinLength && this.hasUpperCase && this.hasLowerCase && this.hasNumber && this.hasSymbol;
   }
 
-  get isNonSecureContext(): boolean {
-    if (typeof window === 'undefined') return false;
-    return !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-  }
-
   constructor(
     public authService: AuthService,
     private cartService: CartService,
@@ -565,16 +553,7 @@ export class LoginComponent implements OnInit {
       this.redirectByRole();
     } catch (err: any) {
       console.error('Error en autenticación corporativa con Azure:', err);
-      const msg = err?.message || '';
-      if (
-        msg.includes('crypto_nonexistent') ||
-        (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-      ) {
-        this.azureErrorMessage =
-          'El navegador bloqueó MSAL porque estás accediendo por HTTP a una IP externa. Para autenticarte con Microsoft Authenticator, abre http://localhost:4200 (túnel SSH) o HTTPS.';
-      } else {
-        this.azureErrorMessage = msg || 'No se pudo completar la autenticación corporativa.';
-      }
+      this.azureErrorMessage = err?.message || 'No se pudo completar la autenticación corporativa.';
     } finally {
       this.isLoadingAzure = false;
       this.cdr.detectChanges();
