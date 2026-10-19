@@ -34,6 +34,7 @@ export class AuthService {
   private cognitoConfigSignal = signal<CognitoRuntimeConfig>(this.loadInitialCognitoConfig());
   private pca: PublicClientApplication | null = null;
   private pcaInitPromise: Promise<PublicClientApplication | null> | null = null;
+  private msalInitError: string | null = null;
   private router = inject(Router);
 
   readonly currentUser = computed(() => this.userSignal());
@@ -196,8 +197,9 @@ export class AuthService {
           }
         }
         return instance;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error inicializando MSAL:', err);
+        this.msalInitError = err?.message || String(err);
         return null;
       }
     })();
@@ -212,7 +214,15 @@ export class AuthService {
 
     const pca = await this.initMsal();
     if (!pca) {
-      throw new Error('No se pudo inicializar el cliente MSAL de Microsoft');
+      if (
+        this.msalInitError?.includes('crypto_nonexistent') ||
+        (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      ) {
+        throw new Error(
+          'El navegador bloqueó la criptografía de MSAL (crypto_nonexistent) porque estás accediendo por HTTP a una IP externa. La API Web Crypto exige un origen seguro (HTTPS o http://localhost:4200 vía túnel SSH) para ejecutar el flujo con Microsoft Authenticator.'
+        );
+      }
+      throw new Error(this.msalInitError || 'No se pudo inicializar el cliente MSAL de Microsoft');
     }
 
     // Clear any orphaned interaction locks left by closed/crashed popups

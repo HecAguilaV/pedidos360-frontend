@@ -222,9 +222,27 @@ import { CartService } from '../../services/cart.service';
               <p>Exclusivo para personal de Administración y Despacho Logístico con cuenta institucional Microsoft.</p>
             </div>
 
+            <div class="security-badge-card">
+              <div class="badge-icon">
+                <i class="ph ph-shield-check"></i>
+              </div>
+              <div class="badge-body">
+                <strong>Verificación en dos pasos (2FA)</strong>
+                <p>El inicio de sesión interactivo abrirá el portal de Microsoft y requerirá confirmación en tu teléfono móvil con <strong>Microsoft Authenticator</strong>.</p>
+              </div>
+            </div>
+
+            <div class="alert-banner warning" *ngIf="isNonSecureContext" style="margin-top: 14px; margin-bottom: 0;">
+              <span>
+                <i class="ph ph-warning-circle"></i>
+                <strong>Origen no seguro detectado:</strong> El navegador deshabilita la API criptográfica de MSAL al acceder por HTTP a una IP pública. Para autenticarte con Microsoft Authenticator, accede a través de <code>http://localhost:4200</code> (túnel SSH) o HTTPS.
+              </span>
+            </div>
+
             <button
               type="button"
               class="btn btn-blue btn-full"
+              style="margin-top: 18px;"
               [disabled]="isLoadingAzure"
               (click)="loginWithAzure()">
               <i class="ph ph-windows-logo" *ngIf="!isLoadingAzure"></i>
@@ -234,45 +252,6 @@ import { CartService } from '../../services/cart.service';
 
             <div class="alert-banner error" *ngIf="azureErrorMessage" style="margin-top: 14px; margin-bottom: 0;">
               <span><i class="ph ph-warning-circle"></i> {{ azureErrorMessage }}</span>
-            </div>
-
-            <!-- Acceso Directo de Colaboradores para entornos HTTP -->
-            <div class="staff-fallback-section">
-              <div class="divider-text"><span>O ingresa directamente con credenciales</span></div>
-              <form class="auth-form" (ngSubmit)="handleStaffSubmit()">
-                <div class="form-field">
-                  <label>Correo Institucional</label>
-                  <input
-                    type="email"
-                    class="form-input"
-                    [(ngModel)]="staffEmail"
-                    name="staffEmail"
-                    placeholder="usuario@josecamposar.onmicrosoft.com"
-                    required />
-                </div>
-                <div class="form-field">
-                  <label>Contraseña Corporativa</label>
-                  <input
-                    type="password"
-                    class="form-input"
-                    [(ngModel)]="staffPassword"
-                    name="staffPassword"
-                    placeholder="Contraseña"
-                    required />
-                </div>
-                <div class="staff-quick-buttons">
-                  <button type="button" class="btn btn-outline btn-sm" (click)="fillStaffAccount('admin')">
-                    <i class="ph ph-shield-check"></i> Rellenar Admin
-                  </button>
-                  <button type="button" class="btn btn-outline btn-sm" (click)="fillStaffAccount('despacho')">
-                    <i class="ph ph-truck"></i> Rellenar Despacho
-                  </button>
-                </div>
-                <button type="submit" class="btn btn-primary btn-full">
-                  <i class="ph ph-sign-in"></i>
-                  <span>Ingresar como Colaborador</span>
-                </button>
-              </form>
             </div>
           </div>
         </div>
@@ -432,27 +411,34 @@ import { CartService } from '../../services/cart.service';
       flex-direction: column;
       gap: 10px;
     }
-    .staff-fallback-section {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid var(--corp-200);
-    }
-    .divider-text {
-      text-align: center;
-      margin-bottom: 14px;
-      font-size: 0.8rem;
-      color: var(--corp-500);
-      font-weight: 600;
-    }
-    .staff-quick-buttons {
+    .security-badge-card {
       display: flex;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      background: var(--corp-50);
+      border: 1px solid var(--corp-200);
+      border-radius: var(--radius-md);
+      margin-top: 14px;
     }
-    .staff-quick-buttons button {
-      flex: 1;
-      font-size: 0.78rem;
-      padding: 6px 8px;
+    .security-badge-card .badge-icon {
+      font-size: 24px;
+      color: #0078d4;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .security-badge-card .badge-body strong {
+      display: block;
+      font-size: 0.88rem;
+      color: var(--corp-900);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .security-badge-card .badge-body p {
+      font-size: 0.8rem;
+      color: var(--corp-600);
+      line-height: 1.35;
+      margin: 0;
     }
   `]
 })
@@ -465,9 +451,6 @@ export class LoginComponent implements OnInit {
   clientEmail = '';
   clientPassword = '';
   confirmationCode = '';
-
-  staffEmail = '';
-  staffPassword = '';
 
   cfgClientId = '';
   cfgDomain = '';
@@ -499,6 +482,11 @@ export class LoginComponent implements OnInit {
   }
   get isPasswordValid(): boolean {
     return this.hasMinLength && this.hasUpperCase && this.hasLowerCase && this.hasNumber && this.hasSymbol;
+  }
+
+  get isNonSecureContext(): boolean {
+    if (typeof window === 'undefined') return false;
+    return !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
   }
 
   constructor(
@@ -577,32 +565,18 @@ export class LoginComponent implements OnInit {
       this.redirectByRole();
     } catch (err: any) {
       console.error('Error en autenticación corporativa con Azure:', err);
-      this.azureErrorMessage = err?.message || 'No se pudo completar la autenticación corporativa.';
+      const msg = err?.message || '';
+      if (
+        msg.includes('crypto_nonexistent') ||
+        (typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      ) {
+        this.azureErrorMessage =
+          'El navegador bloqueó MSAL porque estás accediendo por HTTP a una IP externa. Para autenticarte con Microsoft Authenticator, abre http://localhost:4200 (túnel SSH) o HTTPS.';
+      } else {
+        this.azureErrorMessage = msg || 'No se pudo completar la autenticación corporativa.';
+      }
     } finally {
       this.isLoadingAzure = false;
-      this.cdr.detectChanges();
-    }
-  }
-
-  fillStaffAccount(type: 'admin' | 'despacho'): void {
-    if (type === 'admin') {
-      this.staffEmail = 'hector.aguila@josecamposar.onmicrosoft.com';
-      this.staffPassword = 'Kike4466.';
-    } else {
-      this.staffEmail = 'despacho_aguila@josecamposar.onmicrosoft.com';
-      this.staffPassword = 'Kike4466.';
-    }
-    this.azureErrorMessage = '';
-    this.cdr.detectChanges();
-  }
-
-  handleStaffSubmit(): void {
-    try {
-      this.azureErrorMessage = '';
-      this.authService.loginStaffCredentials(this.staffEmail, this.staffPassword);
-      this.redirectByRole();
-    } catch (err: any) {
-      this.azureErrorMessage = err?.message || 'Error en autenticación de colaborador.';
       this.cdr.detectChanges();
     }
   }
