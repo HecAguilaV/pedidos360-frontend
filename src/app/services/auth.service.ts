@@ -395,11 +395,14 @@ export class AuthService {
     }
 
     const endpoint = `https://cognito-idp.${cfg.region || 'us-east-1'}.amazonaws.com/`;
+    const cleanName = (name || '').trim();
+    const resolvedNickname = cleanName ? cleanName.split(' ')[0] : email.split('@')[0];
     const attributes = [
-      { Name: 'email', Value: email.trim() }
+      { Name: 'email', Value: email.trim() },
+      { Name: 'nickname', Value: resolvedNickname }
     ];
-    if (name && name.trim()) {
-      attributes.push({ Name: 'name', Value: name.trim() });
+    if (cleanName) {
+      attributes.push({ Name: 'name', Value: cleanName });
     }
 
     const response = await fetch(endpoint, {
