@@ -134,6 +134,23 @@ import { CartService } from '../../services/cart.service';
                   name="clientPassword"
                   placeholder="Mínimo 8 caracteres"
                   required />
+                <div class="password-checklist" *ngIf="isRegisterMode">
+                  <span class="check-pill" [class.passed]="hasMinLength">
+                    <i class="ph" [class.ph-check]="hasMinLength" [class.ph-x]="!hasMinLength"></i> Mínimo 8 caracteres
+                  </span>
+                  <span class="check-pill" [class.passed]="hasUpperCase">
+                    <i class="ph" [class.ph-check]="hasUpperCase" [class.ph-x]="!hasUpperCase"></i> 1 Mayúscula
+                  </span>
+                  <span class="check-pill" [class.passed]="hasLowerCase">
+                    <i class="ph" [class.ph-check]="hasLowerCase" [class.ph-x]="!hasLowerCase"></i> 1 Minúscula
+                  </span>
+                  <span class="check-pill" [class.passed]="hasNumber">
+                    <i class="ph" [class.ph-check]="hasNumber" [class.ph-x]="!hasNumber"></i> 1 Número
+                  </span>
+                  <span class="check-pill" [class.passed]="hasSymbol">
+                    <i class="ph" [class.ph-check]="hasSymbol" [class.ph-x]="!hasSymbol"></i> 1 Símbolo (!@#$)
+                  </span>
+                </div>
               </div>
 
               <div class="alert-banner error" *ngIf="cognitoErrorMessage">
@@ -311,6 +328,33 @@ import { CartService } from '../../services/cart.service';
       flex-direction: column;
       gap: 14px;
     }
+    .password-checklist {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 10px;
+      background: var(--corp-50, #f8fafc);
+      border: 1px solid var(--corp-200, #e2e8f0);
+      border-radius: 8px;
+      margin-top: 6px;
+    }
+    .check-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.74rem;
+      padding: 2px 7px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    .check-pill.passed {
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 600;
+    }
     .btn-full {
       width: 100%;
       padding: 11px 16px;
@@ -373,6 +417,25 @@ export class LoginComponent implements OnInit {
   cognitoSuccessMessage = '';
 
   private returnUrl: string | null = null;
+
+  get hasMinLength(): boolean {
+    return (this.clientPassword || '').length >= 8;
+  }
+  get hasUpperCase(): boolean {
+    return /[A-Z]/.test(this.clientPassword || '');
+  }
+  get hasLowerCase(): boolean {
+    return /[a-z]/.test(this.clientPassword || '');
+  }
+  get hasNumber(): boolean {
+    return /[0-9]/.test(this.clientPassword || '');
+  }
+  get hasSymbol(): boolean {
+    return /[^A-Za-z0-9]/.test(this.clientPassword || '');
+  }
+  get isPasswordValid(): boolean {
+    return this.hasMinLength && this.hasUpperCase && this.hasLowerCase && this.hasNumber && this.hasSymbol;
+  }
 
   constructor(
     public authService: AuthService,
