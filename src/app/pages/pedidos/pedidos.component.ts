@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -492,10 +492,20 @@ export class PedidosComponent implements OnInit {
     private pedidosService: PedidosService,
     private enviosService: EnviosService,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
+    const cached = this.pedidosService.cachedPedidos?.();
+    if (cached && cached.length > 0) {
+      this.pedidos = [...cached];
+      this.loading = false;
+      this.cdr.detectChanges();
+    } else {
+      this.loading = true;
+    }
     this.loadPedidos();
   }
 
@@ -552,17 +562,25 @@ export class PedidosComponent implements OnInit {
   }
 
   loadPedidos(): void {
-    this.loading = true;
+    if (this.pedidos.length === 0) {
+      this.loading = true;
+    }
     this.pedidosService.getPedidos().subscribe({
       next: (data) => {
-        this.pedidos = data;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.pedidos = data;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
         console.error('Error al cargar pedidos:', err);
-        this.message = 'No se pudo cargar el listado de órdenes en este momento.';
-        this.isError = true;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.message = 'No se pudo cargar el listado de órdenes en este momento.';
+          this.isError = true;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -590,17 +608,23 @@ export class PedidosComponent implements OnInit {
     this.loading = true;
     this.pedidosService.createPedido(this.newPedido).subscribe({
       next: (created) => {
-        this.message = `Orden #${created.id} registrada correctamente.`;
-        this.isError = false;
-        this.newPedido = { cliente: '', clienteEmail: '', estado: 'PENDIENTE', total: 0 };
-        this.closeModal();
+        this.ngZone.run(() => {
+          this.message = `Orden #${created.id} registrada correctamente.`;
+          this.isError = false;
+          this.newPedido = { cliente: '', clienteEmail: '', estado: 'PENDIENTE', total: 0 };
+          this.closeModal();
+          this.cdr.detectChanges();
+        });
         this.loadPedidos();
       },
       error: (err) => {
         console.error('Error al crear pedido:', err);
-        this.message = 'No se pudo registrar la orden.';
-        this.isError = true;
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.message = 'No se pudo registrar la orden.';
+          this.isError = true;
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -609,14 +633,20 @@ export class PedidosComponent implements OnInit {
     if (!confirm(`¿Confirmas eliminar la orden #${id}?`)) return;
     this.pedidosService.deletePedido(id).subscribe({
       next: () => {
-        this.message = `Orden #${id} eliminada.`;
-        this.isError = false;
+        this.ngZone.run(() => {
+          this.message = `Orden #${id} eliminada.`;
+          this.isError = false;
+          this.cdr.detectChanges();
+        });
         this.loadPedidos();
       },
       error: (err) => {
         console.error('Error al eliminar pedido:', err);
-        this.message = 'No tienes permisos para eliminar esta orden o ocurrió un error.';
-        this.isError = true;
+        this.ngZone.run(() => {
+          this.message = 'No tienes permisos para eliminar esta orden o ocurrió un error.';
+          this.isError = true;
+          this.cdr.detectChanges();
+        });
       }
     });
   }

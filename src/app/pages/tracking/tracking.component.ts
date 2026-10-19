@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -60,7 +60,9 @@ export class TrackingComponent implements OnInit {
   constructor(
     private enviosService: EnviosService,
     private route: ActivatedRoute,
-    public authService: AuthService
+    public authService: AuthService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   get isStaff(): boolean {
@@ -69,6 +71,11 @@ export class TrackingComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isStaff) {
+      const cached = this.enviosService.cachedEnvios?.();
+      if (cached && cached.length > 0) {
+        this.listaEnvios.set([...cached]);
+        this.cdr.detectChanges();
+      }
       this.cargarEnvios();
     }
 
@@ -86,10 +93,18 @@ export class TrackingComponent implements OnInit {
 
   cargarEnvios(): void {
     this.enviosService.listarEnvios().subscribe({
-      next: (data) => this.listaEnvios.set(data),
+      next: (data) => {
+        this.ngZone.run(() => {
+          this.listaEnvios.set(data);
+          this.cdr.detectChanges();
+        });
+      },
       error: (err) => {
         console.error('Error cargando despachos:', err);
-        this.listaEnvios.set([]);
+        this.ngZone.run(() => {
+          this.listaEnvios.set([]);
+          this.cdr.detectChanges();
+        });
       }
     });
   }
@@ -103,9 +118,12 @@ export class TrackingComponent implements OnInit {
     this.ordenEnPreparacion.set(null);
 
     this.enviosService.obtenerPorTracking(codigo).subscribe(envio => {
-      this.cargando.set(false);
-      this.envioEncontrado.set(envio);
-      this.noEncontrado.set(!envio);
+      this.ngZone.run(() => {
+        this.cargando.set(false);
+        this.envioEncontrado.set(envio);
+        this.noEncontrado.set(!envio);
+        this.cdr.detectChanges();
+      });
     });
   }
 
@@ -115,15 +133,18 @@ export class TrackingComponent implements OnInit {
     this.ordenEnPreparacion.set(null);
 
     this.enviosService.obtenerPorOrden(orderId).subscribe(envio => {
-      this.cargando.set(false);
-      if (envio) {
-        this.envioEncontrado.set(envio);
-        this.codigoBusqueda = envio.numeroGuia;
-      } else {
-        // The order exists but logistics has not generated a guide yet: say so honestly.
-        this.envioEncontrado.set(null);
-        this.ordenEnPreparacion.set(orderId);
-      }
+      this.ngZone.run(() => {
+        this.cargando.set(false);
+        if (envio) {
+          this.envioEncontrado.set(envio);
+          this.codigoBusqueda = envio.numeroGuia;
+        } else {
+          // The order exists but logistics has not generated a guide yet: say so honestly.
+          this.envioEncontrado.set(null);
+          this.ordenEnPreparacion.set(orderId);
+        }
+        this.cdr.detectChanges();
+      });
     });
   }
 
@@ -140,16 +161,22 @@ export class TrackingComponent implements OnInit {
     this.errorOperacion.set(null);
     this.enviosService.actualizarEstado(envio.id, nuevoEstado).subscribe({
       next: (actualizado) => {
-        this.cargando.set(false);
-        if (this.envioEncontrado()?.id === actualizado.id) {
-          this.envioEncontrado.set(actualizado);
-        }
-        this.listaEnvios.update(list => list.map(e => e.id === actualizado.id ? actualizado : e));
+        this.ngZone.run(() => {
+          this.cargando.set(false);
+          if (this.envioEncontrado()?.id === actualizado.id) {
+            this.envioEncontrado.set(actualizado);
+          }
+          this.listaEnvios.update(list => list.map(e => e.id === actualizado.id ? actualizado : e));
+          this.cdr.detectChanges();
+        });
       },
       error: (err) => {
-        this.cargando.set(false);
-        console.error('Error al actualizar estado del despacho:', err);
-        this.errorOperacion.set('No se pudo actualizar el estado del despacho. Verifica tus permisos.');
+        this.ngZone.run(() => {
+          this.cargando.set(false);
+          console.error('Error al actualizar estado del despacho:', err);
+          this.errorOperacion.set('No se pudo actualizar el estado del despacho. Verifica tus permisos.');
+          this.cdr.detectChanges();
+        });
       }
     });
   }

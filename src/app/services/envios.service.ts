@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, of, retry, timer } from 'rxjs';
+import { Observable, catchError, of, retry, tap, timer } from 'rxjs';
 import { Envio } from '../models/envio.model';
 import { environment } from '../../environments/environment';
 
@@ -10,11 +10,18 @@ import { environment } from '../../environments/environment';
 export class EnviosService {
   private readonly apiUrl = environment.enviosApiUrl;
 
+  readonly cachedEnvios = signal<Envio[]>([]);
+  readonly hasLoaded = signal<boolean>(false);
 
   constructor(private http: HttpClient) {}
 
   listarEnvios(): Observable<Envio[]> {
-    return this.http.get<Envio[]>(this.apiUrl);
+    return this.http.get<Envio[]>(this.apiUrl).pipe(
+      tap((data) => {
+        this.cachedEnvios.set(data);
+        this.hasLoaded.set(true);
+      })
+    );
   }
 
   obtenerPorTracking(numeroGuia: string): Observable<Envio | null> {
@@ -34,7 +41,12 @@ export class EnviosService {
   }
 
   actualizarEstado(id: number, estado: string): Observable<Envio> {
-    return this.http.put<Envio>(`${this.apiUrl}/${id}/estado`, { estado });
+    return this.http.put<Envio>(`${this.apiUrl}/${id}/estado`, { estado }).pipe(
+      tap((actualizado) => {
+        const current = this.cachedEnvios();
+        this.cachedEnvios.set(current.map(e => e.id === actualizado.id ? actualizado : e));
+      })
+    );
   }
 }
 
