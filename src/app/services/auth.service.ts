@@ -230,6 +230,10 @@ export class AuthService {
         prompt: 'login'
       });
       pca.setActiveAccount(response.account);
+      console.info('[P360-AUTH] loginPopup OK', {
+        username: response.account?.username,
+        scopes: response.scopes
+      });
       this.handleAuthResponse(response);
     } catch (error: any) {
       const errorStr = (error?.errorCode || error?.message || '').toLowerCase();
@@ -490,15 +494,34 @@ export class AuthService {
   ): string[] {
     const extracted = new Set<string>();
 
+    // Entra emits group/role object IDs (GUIDs) in `groups`/`wids`. Those are NOT
+    // application roles, and letting them into the role set defeats the "no roles"
+    // fallbacks. Keep only real role names, plus the well-known Entra
+    // "Global Administrator" directory role WID, which does grant admin access.
+    const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const GLOBAL_ADMIN_WID = '62e90394-69f5-4237-9190-012177145e10';
+
     const addFromList = (list: unknown) => {
+      const push = (raw: unknown) => {
+        if (typeof raw !== 'string') return;
+        const value = raw.trim();
+        if (!value) return;
+        if (GUID_RE.test(value)) {
+          if (value.toLowerCase() === GLOBAL_ADMIN_WID) {
+            extracted.add('Administrador');
+            extracted.add('ADMIN');
+          }
+          return;
+        }
+        extracted.add(value);
+      };
+
       if (Array.isArray(list)) {
         for (const item of list) {
-          if (typeof item === 'string' && item.trim()) {
-            extracted.add(item.trim());
-          }
+          push(item);
         }
-      } else if (typeof list === 'string' && list.trim()) {
-        extracted.add(list.trim());
+      } else {
+        push(list);
       }
     };
 
@@ -658,9 +681,24 @@ export class AuthService {
       finalRoles = Array.from(new Set([...roles, 'Administrador', 'ADMIN']));
     } else if (roles.length === 0 || (roles.length === 1 && roles[0] === 'Usuario')) {
       finalRoles = ['Administrador', 'ADMIN'];
+    } else {
+      // Unrecognised role set. Microsoft Entra ID is the staff sign-in path in this
+      // deployment and getStoredUser() already promotes every non-dispatch Entra
+      // identity to Administrador on restore. Keep both paths consistent so the
+      // post-login view never depends on a page reload.
+      finalRoles = ['Administrador', 'ADMIN'];
     }
 
     if (finalRoles.length === 0) finalRoles = ['Administrador', 'ADMIN'];
+
+    console.info('[P360-AUTH] handleAuthResponse', {
+      username,
+      accountName: account.name,
+      claimKeys: Object.keys(claims),
+      claimsRoles: (claims as any)['roles'],
+      resolvedRoles: roles,
+      finalRoles
+    });
 
     const user: UserProfile = {
       name: account.name || username || 'Administrador',

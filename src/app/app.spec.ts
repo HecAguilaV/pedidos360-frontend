@@ -295,5 +295,33 @@ describe('Pedidos360 Frontend Suite', () => {
       expect(rolesWid).toContain('Administrador');
       expect(rolesWid).toContain('ADMIN');
     });
+
+    it('ignores Entra group object GUIDs so the staff fallback still applies', () => {
+      const authService = TestBed.inject(AuthService);
+      const roles: string[] = (authService as any).extractRolesFromTokenAndClaims({
+        preferred_username: 'colaborador@duocuc.cl',
+        groups: ['11111111-2222-3333-4444-555555555555'],
+        wids: ['aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee']
+      });
+      expect(roles).toEqual(['Usuario']);
+    });
+
+    it('resolves the Administrador view right after Entra login, without a reload', () => {
+      const authService = TestBed.inject(AuthService) as any;
+      authService.handleAuthResponse({
+        account: {
+          username: 'colaborador@duocuc.cl',
+          name: 'Colaborador',
+          idTokenClaims: {
+            roles: ['Rol Desconocido'],
+            groups: ['11111111-2222-3333-4444-555555555555']
+          }
+        },
+        accessToken: '',
+        idToken: '',
+        scopes: []
+      });
+      expect(authService.isAdmin()).toBe(true);
+    });
   });
 });
