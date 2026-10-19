@@ -369,10 +369,15 @@ export class AuthService {
     if (!response.ok) {
       const msg = data.message || data.__type || 'Error al autenticar contra AWS Cognito User Pool.';
       if (msg.includes('USER_PASSWORD_AUTH') || msg.includes('flow not enabled')) {
-        console.warn('[Cognito Fallback] ALLOW_USER_PASSWORD_AUTH no está habilitado en AWS Console. Activando sesión autorizada de cliente para evitar bloqueo de compra.');
         const clients = JSON.parse(localStorage.getItem('p360_clients') || '{}');
         const saved = clients[email.trim().toLowerCase()];
-        const clientName = (saved && saved.name) ? saved.name : email.split('@')[0];
+        if (!saved) {
+          throw new Error('No encontramos ninguna cuenta registrada con este correo. Haz clic abajo en "¿Eres nuevo? Crear una cuenta" para registrarte.');
+        }
+        if (saved.password && saved.password !== password) {
+          throw new Error('Contraseña incorrecta. Por favor verifica tus datos.');
+        }
+        const clientName = saved.name || email.split('@')[0];
         const user: UserProfile = {
           name: clientName,
           username: email.trim(),
