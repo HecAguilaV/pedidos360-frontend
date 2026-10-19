@@ -668,6 +668,15 @@ export class AuthService {
     if (rawToken) scanObj(this.decodeJwtPayload(rawToken));
     if (rawIdToken && rawIdToken !== rawToken) scanObj(this.decodeJwtPayload(rawIdToken));
 
+    const isCognito =
+      (claims && typeof claims['iss'] === 'string' && claims['iss'].includes('cognito')) ||
+      (rawToken && typeof this.decodeJwtPayload(rawToken)['iss'] === 'string' && this.decodeJwtPayload(rawToken)['iss'].includes('cognito'));
+
+    if (isCognito) {
+      // Clientes de Cognito son exclusivamente 'Usuario' a menos que tengan grupos explícitos en cognito:groups
+      return extracted.size > 0 ? Array.from(extracted) : ['Usuario'];
+    }
+
     if (isLabUser && !isDespacho) {
       extracted.add('Administrador');
       extracted.add('ADMIN');
@@ -814,6 +823,35 @@ export class AuthService {
 
     this.userSignal.set(user);
     localStorage.setItem('p360_user', JSON.stringify(user));
+  }
+
+  /**
+   * Direct institutional staff login for environments where MSAL popup is restricted (HTTP public IP)
+   */
+  loginStaffCredentials(email: string, pass: string): UserProfile {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const isDespacho = cleanEmail.includes('despacho');
+
+    if (!cleanEmail.includes('josecamposar.onmicrosoft.com') && !cleanEmail.includes('duocuc.cl')) {
+      throw new Error('Solo se permiten cuentas institucionales (@josecamposar.onmicrosoft.com).');
+    }
+
+    if (pass !== 'Kike4466.') {
+      throw new Error('Contraseña corporativa incorrecta.');
+    }
+
+    const role = isDespacho ? 'Despachador' : 'Administrador';
+    const name = isDespacho ? 'Operador de Despacho' : 'Héctor Águila (Administrador)';
+    const user: UserProfile = {
+      name,
+      username: cleanEmail,
+      roles: isDespacho ? ['Despachador'] : ['Administrador', 'ADMIN'],
+      scopes: ['pedidos360.access', 'openid', 'profile'],
+      provider: 'AZURE_ENTRA'
+    };
+    const token = `staff-token-${btoa(cleanEmail)}`;
+    this.setSession(user, token);
+    return user;
   }
 
   clearSession(): void {

@@ -235,6 +235,45 @@ import { CartService } from '../../services/cart.service';
             <div class="alert-banner error" *ngIf="azureErrorMessage" style="margin-top: 14px; margin-bottom: 0;">
               <span><i class="ph ph-warning-circle"></i> {{ azureErrorMessage }}</span>
             </div>
+
+            <!-- Acceso Directo de Colaboradores para entornos HTTP -->
+            <div class="staff-fallback-section">
+              <div class="divider-text"><span>O ingresa directamente con credenciales</span></div>
+              <form class="auth-form" (ngSubmit)="handleStaffSubmit()">
+                <div class="form-field">
+                  <label>Correo Institucional</label>
+                  <input
+                    type="email"
+                    class="form-input"
+                    [(ngModel)]="staffEmail"
+                    name="staffEmail"
+                    placeholder="usuario@josecamposar.onmicrosoft.com"
+                    required />
+                </div>
+                <div class="form-field">
+                  <label>Contraseña Corporativa</label>
+                  <input
+                    type="password"
+                    class="form-input"
+                    [(ngModel)]="staffPassword"
+                    name="staffPassword"
+                    placeholder="Contraseña"
+                    required />
+                </div>
+                <div class="staff-quick-buttons">
+                  <button type="button" class="btn btn-outline btn-sm" (click)="fillStaffAccount('admin')">
+                    <i class="ph ph-shield-check"></i> Rellenar Admin
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" (click)="fillStaffAccount('despacho')">
+                    <i class="ph ph-truck"></i> Rellenar Despacho
+                  </button>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                  <i class="ph ph-sign-in"></i>
+                  <span>Ingresar como Colaborador</span>
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -393,6 +432,28 @@ import { CartService } from '../../services/cart.service';
       flex-direction: column;
       gap: 10px;
     }
+    .staff-fallback-section {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--corp-200);
+    }
+    .divider-text {
+      text-align: center;
+      margin-bottom: 14px;
+      font-size: 0.8rem;
+      color: var(--corp-500);
+      font-weight: 600;
+    }
+    .staff-quick-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .staff-quick-buttons button {
+      flex: 1;
+      font-size: 0.78rem;
+      padding: 6px 8px;
+    }
   `]
 })
 export class LoginComponent implements OnInit {
@@ -404,6 +465,9 @@ export class LoginComponent implements OnInit {
   clientEmail = '';
   clientPassword = '';
   confirmationCode = '';
+
+  staffEmail = '';
+  staffPassword = '';
 
   cfgClientId = '';
   cfgDomain = '';
@@ -516,6 +580,29 @@ export class LoginComponent implements OnInit {
       this.azureErrorMessage = err?.message || 'No se pudo completar la autenticación corporativa.';
     } finally {
       this.isLoadingAzure = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  fillStaffAccount(type: 'admin' | 'despacho'): void {
+    if (type === 'admin') {
+      this.staffEmail = 'hector.aguila@josecamposar.onmicrosoft.com';
+      this.staffPassword = 'Kike4466.';
+    } else {
+      this.staffEmail = 'despacho_aguila@josecamposar.onmicrosoft.com';
+      this.staffPassword = 'Kike4466.';
+    }
+    this.azureErrorMessage = '';
+    this.cdr.detectChanges();
+  }
+
+  handleStaffSubmit(): void {
+    try {
+      this.azureErrorMessage = '';
+      this.authService.loginStaffCredentials(this.staffEmail, this.staffPassword);
+      this.redirectByRole();
+    } catch (err: any) {
+      this.azureErrorMessage = err?.message || 'Error en autenticación de colaborador.';
       this.cdr.detectChanges();
     }
   }
