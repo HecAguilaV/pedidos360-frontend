@@ -254,7 +254,7 @@ interface PostmanScenario {
           <div class="crm-card-header">
             <div class="crm-card-title">
               <i class="ph ph-tray"></i>
-              <span>Estado en Tiempo Real de las 6 Colas (vía proxy Nginx /api/ops/rabbitmq/*)</span>
+              <span>Estado Operativo de Colas RabbitMQ</span>
             </div>
             <button class="btn btn-outline btn-sm" (click)="loadRabbitQueues()">
               <i class="ph ph-arrows-clockwise"></i>
@@ -299,9 +299,9 @@ interface PostmanScenario {
           </div>
 
           <div class="empty-box" *ngIf="queues().length === 0">
-            <i class="ph ph-tray"></i>
-            <h4>Consultando RabbitMQ Management API...</h4>
-            <p>Conectando a través de Nginx proxy con credenciales seguras de servidor.</p>
+            <i class="ph ph-shield-check"></i>
+            <h4>RabbitMQ Management API Protegido en Red Privada</h4>
+            <p>Por seguridad Cloud Native y prevención de accesos no autorizados, el broker opera aislado de internet. Acceso administrativo vía túnel SSH en el puerto 15672.</p>
           </div>
         </div>
       </div>

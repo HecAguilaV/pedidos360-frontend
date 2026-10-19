@@ -417,7 +417,7 @@ export class LoginComponent implements OnInit {
       await this.authService.login();
       this.redirectByRole();
     } catch (err: any) {
-      console.error('[P360-AUTH] loginWithAzure failed', err);
+      console.error('Error en autenticación corporativa con Azure:', err);
       this.azureErrorMessage = err?.message || 'No se pudo completar la autenticación corporativa.';
     } finally {
       this.isLoadingAzure = false;
