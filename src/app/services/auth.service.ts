@@ -230,10 +230,6 @@ export class AuthService {
         prompt: 'login'
       });
       pca.setActiveAccount(response.account);
-      console.info('[P360-AUTH] loginPopup OK', {
-        username: response.account?.username,
-        scopes: response.scopes
-      });
       this.handleAuthResponse(response);
     } catch (error: any) {
       const errorStr = (error?.errorCode || error?.message || '').toLowerCase();
@@ -691,15 +687,6 @@ export class AuthService {
 
     if (finalRoles.length === 0) finalRoles = ['Administrador', 'ADMIN'];
 
-    console.info('[P360-AUTH] handleAuthResponse', {
-      username,
-      accountName: account.name,
-      claimKeys: Object.keys(claims),
-      claimsRoles: (claims as any)['roles'],
-      resolvedRoles: roles,
-      finalRoles
-    });
-
     const user: UserProfile = {
       name: account.name || username || 'Administrador',
       username: username || account.username || 'hector.aguila@josecamposar.onmicrosoft.com',
@@ -804,21 +791,24 @@ export class AuthService {
   }
 
   async logout(): Promise<void> {
-    this.clearMsalInteractionLocks();
     const current = this.userSignal();
-    if (current?.provider === 'AZURE_ENTRA' && this.isMsalConfigured && this.pca) {
+    const isAzure = current?.provider === 'AZURE_ENTRA';
+
+    // 1. Limpiar sesión local inmediatamente para que la UI responda al instante
+    this.clearSession();
+    this.router.navigate(['/login']);
+
+    // 2. Limpieza de cuenta MSAL en segundo plano sin bloquear la UI
+    if (isAzure && this.isMsalConfigured && this.pca) {
       try {
         const account = this.pca.getActiveAccount() || this.pca.getAllAccounts()[0];
         if (account) {
-          await this.pca.logoutPopup({ account });
+          this.pca.logoutPopup({ account }).catch(() => {});
         }
-      } catch (err) {
-        console.warn('Error en logoutPopup de MSAL:', err);
+      } catch {
+        // Ignorar errores en background
       }
     }
-
-    this.clearSession();
-    this.router.navigate(['/login']);
   }
 
   clearMsalInteractionLocks(): void {

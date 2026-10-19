@@ -80,7 +80,7 @@
           </div>
 
           <button 
-            *ngIf="!authService.isDespachador()"
+            *ngIf="!authService.isAdmin() && !authService.isDespachador()"
             class="cart-trigger-btn" 
             (click)="cartService.toggleDrawer()" 
             title="Ver carrito de compras">

@@ -20,7 +20,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  if (user?.username) {
+  if (user?.username && req.url.includes('/api/v1/carrito')) {
     headers['X-User-Id'] = user.username;
   }
 

@@ -191,21 +191,12 @@ import { Producto } from '../../models/producto.model';
                   </span>
                 </td>
                 <td style="text-align: right;">
-                  <div style="display: inline-flex; gap: 6px; align-items: center;">
-                    <button
-                      class="btn btn-outline btn-sm"
-                      [disabled]="prod.stock <= 0"
-                      (click)="agregarAlCarrito(prod)">
-                      <i class="ph ph-shopping-cart-simple"></i>
-                      <span>{{ addedState[prod.id!] ? 'Agregado' : 'Al Carrito' }}</span>
-                    </button>
-                    <button
-                      class="btn-danger-ghost"
-                      (click)="deleteProducto(prod.id!)"
-                      title="Eliminar producto">
-                      <i class="ph ph-trash"></i>
-                    </button>
-                  </div>
+                  <button
+                    class="btn-danger-ghost"
+                    (click)="deleteProducto(prod.id!)"
+                    title="Eliminar producto">
+                    <i class="ph ph-trash"></i>
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -244,7 +235,7 @@ import { Producto } from '../../models/producto.model';
                 <span class="product-tax-label">IVA (19%) incluido</span>
               </div>
 
-              <div class="store-card-controls">
+              <div class="store-card-controls" *ngIf="!authService.isAdmin()">
                 <div class="qty-box" *ngIf="prod.stock > 0">
                   <button type="button" (click)="decrementQty(prod.id!)">-</button>
                   <span>{{ getQty(prod.id!) }}</span>

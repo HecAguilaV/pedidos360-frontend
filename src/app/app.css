@@ -313,6 +313,9 @@
   color: var(--corp-400);
   font-size: 1.15rem;
   transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 .btn-logout:hover {

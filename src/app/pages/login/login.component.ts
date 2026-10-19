@@ -415,7 +415,6 @@ export class LoginComponent implements OnInit {
       this.isLoadingAzure = true;
       this.azureErrorMessage = '';
       await this.authService.login();
-      console.info('[P360-AUTH] login() resolved');
       this.redirectByRole();
     } catch (err: any) {
       console.error('[P360-AUTH] loginWithAzure failed', err);
@@ -514,14 +513,6 @@ export class LoginComponent implements OnInit {
   }
 
   redirectByRole(): void {
-    const __u = this.authService.currentUser();
-    console.info('[P360-AUTH] redirectByRole', {
-      authenticated: this.authService.isAuthenticated(),
-      username: __u?.username,
-      roles: __u?.roles,
-      isAdmin: this.authService.isAdmin(),
-      isDespachador: this.authService.isDespachador()
-    });
     if (this.authService.isAdmin()) {
       this.router.navigate(['/home']);
     } else if (this.authService.isDespachador()) {
