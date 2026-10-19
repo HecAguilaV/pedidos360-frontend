@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -378,8 +378,33 @@ export class LoginComponent implements OnInit {
     public authService: AuthService,
     private cartService: CartService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  private formatCognitoError(err: any): string {
+    const raw = err?.message || err?.error || '';
+    const lower = raw.toLowerCase();
+    if (lower.includes('user_password_auth') || lower.includes('flow not enabled')) {
+      return 'Falta habilitar "ALLOW_USER_PASSWORD_AUTH" en el App Client de AWS Cognito (consola de AWS).';
+    }
+    if (lower.includes('usernotfoundexception') || lower.includes('user does not exist')) {
+      return 'No encontramos ninguna cuenta con este correo. Haz clic abajo en "¿Eres nuevo? Crear una cuenta" para registrarte.';
+    }
+    if (lower.includes('notauthorizedexception') || lower.includes('incorrect username or password')) {
+      return 'Correo o contraseña incorrectos. Si aún no te has registrado, haz clic abajo en "Crear una cuenta".';
+    }
+    if (lower.includes('invalidpasswordexception') || lower.includes('password did not conform')) {
+      return 'La contraseña debe tener mínimo 8 caracteres, mayúsculas, minúsculas, números y símbolos.';
+    }
+    if (lower.includes('usernameexistsexception')) {
+      return 'Ya existe una cuenta con este correo. Cambia a "Iniciar Sesión" con tu contraseña.';
+    }
+    if (lower.includes('code mismatch') || lower.includes('expiredcodeexception')) {
+      return 'El código de verificación ingresado no es válido o ya expiró.';
+    }
+    return raw || 'Error al conectar con el servicio de autenticación.';
+  }
 
   async ngOnInit(): Promise<void> {
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || null;
@@ -399,9 +424,10 @@ export class LoginComponent implements OnInit {
         this.redirectByRole();
         return;
       } catch (err: any) {
-        this.cognitoErrorMessage = err?.message || 'Error al procesar el inicio de sesión.';
+        this.cognitoErrorMessage = this.formatCognitoError(err);
       } finally {
         this.isLoadingCognito = false;
+        this.cdr.detectChanges();
       }
     }
 
@@ -421,6 +447,7 @@ export class LoginComponent implements OnInit {
       this.azureErrorMessage = err?.message || 'No se pudo completar la autenticación corporativa.';
     } finally {
       this.isLoadingAzure = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -430,8 +457,9 @@ export class LoginComponent implements OnInit {
       this.cognitoErrorMessage = '';
       await this.authService.loginWithCognitoHostedUi();
     } catch (err: any) {
-      this.cognitoErrorMessage = err?.message || 'No se pudo iniciar el portal seguro.';
+      this.cognitoErrorMessage = this.formatCognitoError(err);
       this.isLoadingCognito = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -464,9 +492,10 @@ export class LoginComponent implements OnInit {
         this.redirectByRole();
       }
     } catch (err: any) {
-      this.cognitoErrorMessage = err?.message || 'Credenciales inválidas o servicio no disponible.';
+      this.cognitoErrorMessage = this.formatCognitoError(err);
     } finally {
       this.isLoadingCognito = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -489,9 +518,10 @@ export class LoginComponent implements OnInit {
         this.cognitoSuccessMessage = 'Correo verificado. Ya puedes iniciar sesión.';
       }
     } catch (err: any) {
-      this.cognitoErrorMessage = err?.message || 'Código de verificación inválido.';
+      this.cognitoErrorMessage = this.formatCognitoError(err);
     } finally {
       this.isLoadingCognito = false;
+      this.cdr.detectChanges();
     }
   }
 
