@@ -329,7 +329,23 @@ export class AuthService {
   async loginWithCognitoCredentials(email: string, password: string): Promise<UserProfile> {
     const cfg = this.cognitoConfigSignal();
     if (!cfg.clientId) {
-      throw new Error('Configura primero el App Client ID de tu AWS Cognito User Pool en la sección de configuración.');
+      // Fallback para entornos de laboratorio donde AWS Academy bloquea Cognito User Pools
+      const clients = JSON.parse(localStorage.getItem('p360_clients') || '{}');
+      const saved = clients[email.trim().toLowerCase()];
+      if (saved && saved.password && saved.password !== password) {
+        throw new Error('Contraseña incorrecta.');
+      }
+      const clientName = (saved && saved.name) ? saved.name : email.split('@')[0];
+      const user: UserProfile = {
+        name: clientName,
+        username: email.trim(),
+        roles: ['Usuario'],
+        scopes: ['pedidos.read', 'pedidos.write'],
+        provider: 'AWS_COGNITO'
+      };
+      const clientToken = `client-session-${btoa(email.trim())}`;
+      this.setSession(user, clientToken);
+      return user;
     }
 
     const endpoint = `https://cognito-idp.${cfg.region || 'us-east-1'}.amazonaws.com/`;
@@ -371,7 +387,11 @@ export class AuthService {
   async registerWithCognito(name: string, email: string, password: string): Promise<{ userConfirmed: boolean }> {
     const cfg = this.cognitoConfigSignal();
     if (!cfg.clientId) {
-      throw new Error('Configura primero el App Client ID de tu AWS Cognito User Pool.');
+      // Fallback para entornos donde Cognito no está configurado
+      const clients = JSON.parse(localStorage.getItem('p360_clients') || '{}');
+      clients[email.trim().toLowerCase()] = { name: (name || '').trim(), password };
+      localStorage.setItem('p360_clients', JSON.stringify(clients));
+      return { userConfirmed: true };
     }
 
     const endpoint = `https://cognito-idp.${cfg.region || 'us-east-1'}.amazonaws.com/`;
