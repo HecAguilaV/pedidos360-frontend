@@ -460,10 +460,16 @@ export class LoginComponent implements OnInit {
     if (lower.includes('invalidpasswordexception') || lower.includes('password did not conform')) {
       return 'La contraseña debe tener mínimo 8 caracteres, mayúsculas, minúsculas, números y símbolos.';
     }
-    if (lower.includes('usernameexistsexception')) {
-      return 'Ya existe una cuenta con este correo. Cambia a "Iniciar Sesión" con tu contraseña.';
+    if (lower.includes('usernameexistsexception') || lower.includes('user already exists')) {
+      return 'Ya existe una cuenta registrada con este correo. Cambia abajo a "Inicia sesión" para ingresar con tu contraseña.';
     }
-    if (lower.includes('code mismatch') || lower.includes('expiredcodeexception')) {
+    if (lower.includes('user not confirmed') || lower.includes('usernotconfirmedexception')) {
+      return 'Esta cuenta aún no ha sido verificada. Ingresa el código que enviamos a tu correo.';
+    }
+    if (lower.includes('limitexceededexception') || lower.includes('too many requests')) {
+      return 'Demasiados intentos fallidos. Por seguridad, espera unos minutos antes de reintentar.';
+    }
+    if (lower.includes('code mismatch') || lower.includes('expiredcodeexception') || lower.includes('invalid verification code')) {
       return 'El código de verificación ingresado no es válido o ya expiró.';
     }
     return raw || 'Error al conectar con el servicio de autenticación.';
